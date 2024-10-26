@@ -5,7 +5,6 @@ import os
 import shutil
 import uuid
 
-from main import NB_IMAGES_PER_PAGE
 
 NORMAL_IMAGE = '''
 image("<PATH>",width: 5.5cm),
@@ -43,17 +42,17 @@ TYPST_BASE = '''
 
 '''
 
-NB_IMAGES_PER_PAGE = 5 # Should not change unless the typst template changes
+NB_IMAGES_PER_PAGE = 4 # Should not change unless the typst template changes
 NB_TOP_IMAGES = 3 # Should not change unless the typst template changes
 
 class Generate():
-    def __init__(self, pdf_paths: list[str]) -> None
+    def __init__(self, pdf_paths: list[str]) -> None:
         self.pdf_paths = pdf_paths
         self.images = {
             "recto": [],
             "verso": []
         }
-        self.temp_out_path = f"out/uuid.uuid4()"
+        self.temp_out_path = f"out/{uuid.uuid4()}"
 
     def generate(self) -> tuple[bool, str]:
         '''
@@ -82,11 +81,10 @@ class Generate():
         out_path = f'out/{uuid.uuid4()}.pdf'
         try:
             typst.compile(f"{self.temp_out_path}/main.typ", out_path)
+            self._delete_out_temp_path()
         except Exception as e:
             print(f"Error compiling the typst file: {e}")
             return False, f"Error compiling the typst file: {e}"
-        finally:
-            self._delete_out_temp_path()
 
         return True, out_path
 
@@ -134,7 +132,7 @@ class Generate():
         recto.save(recto_path)
         verso.save(verso_path)
 
-        return recto_path, verso_path
+        return os.path.basename(recto_path), os.path.basename(verso_path) # Return the basename to avoid path issues in the typst file
 
     def _generate_typst(self) -> str:
         '''
@@ -142,7 +140,6 @@ class Generate():
         '''
 
         typst_content = TYPST_BASE
-        typst_content += GRID
         for i in range(0,len(self.images["recto"]),NB_IMAGES_PER_PAGE ): # 5 images per pages
             recto_images = self.images["recto"][i:i+NB_IMAGES_PER_PAGE]
             verso_images = self.images["verso"][i:i+NB_IMAGES_PER_PAGE]
@@ -180,3 +177,31 @@ class Generate():
             typst_content += GRID_END
 
         return typst_content
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python main.py **.pdf")
+        sys.exit(1)
+
+    pdfs = sys.argv[1:]
+
+    if not all(p.endswith('.pdf') for p in pdfs):
+        print("All files must be PDFs")
+        sys.exit(1)
+
+    if not all(os.path.isfile(p) for p in pdfs):
+        print("All files must exist")
+        sys.exit(1)
+
+    # Reset out path content
+    if os.path.exists("out"):
+        shutil.rmtree("out")
+    os.mkdir("out")
+
+    g = Generate(pdfs)
+    success, message = g.generate()
+    if success:
+        print(f"PDF generated: {message}")
+    else:
+        print(f"Error: {message}")
+        sys.exit(1)

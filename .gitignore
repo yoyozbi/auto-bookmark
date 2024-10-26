@@ -2,3 +2,4 @@
 .direnv/
 out/
 input/
+__pycache__
