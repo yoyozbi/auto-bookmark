@@ -30,6 +30,7 @@
               inherit inputs pkgs;
               modules = [
                 {
+                  dotenv.enable = true;
                   # https://devenv.sh/reference/options/
                   packages = [  pkgs.poppler_utils ];
 
@@ -38,11 +39,7 @@
                       enable = true;
                       venv = {
                         enable = true;
-                        requirements = ''
-                        pdf2image==1.17.0
-                        typst==0.11.1
-                        flask==3.0.3
-                        '';
+                        requirements = builtins.readFile ./requirements.txt;
                       };
                     };
                   };

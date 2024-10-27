@@ -18,7 +18,7 @@ grid.cell(rotate(270deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 
 '''
 
 BLANK_IMAGE = '''
-block(width: 5.5cm)
+block(width: 5.5cm),
 '''
 
 GRID = '''
@@ -63,7 +63,7 @@ class Generate():
         if not check_pdf_paths:
             return False, message
 
-        os.mkdir(self.temp_out_path)
+        os.makedirs(self.temp_out_path)
 
         for pdf in self.pdf_paths:
             recto_path, verso_path = self._convert_pdf_to_images(pdf)
@@ -148,13 +148,19 @@ class Generate():
                 # Reverse the first 3 images
                 verso_images = verso_images[:NB_TOP_IMAGES][::-1] + verso_images[NB_TOP_IMAGES:]
 
-            if len(verso_images) == NB_TOP_IMAGES-1:
-                # We need to add a blank image
-                verso_images.append(False)
+            if len(verso_images) < NB_TOP_IMAGES:
+                # We need to add a  NB_TOP_IMAGE-len(images) blank image
+                for _ in range(NB_TOP_IMAGES - len(verso_images)):
+                    verso_images.append(False)
+                    recto_images.append(False)
                 verso_images = verso_images[::-1]
 
             typst_content += GRID
             for i, recto in enumerate(recto_images):
+                if not recto:
+                    typst_content += BLANK_IMAGE
+                    continue
+
                 if i < NB_TOP_IMAGES:
                     typst_content += NORMAL_IMAGE.replace("<PATH>", recto)
                 else:
