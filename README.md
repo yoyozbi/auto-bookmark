@@ -12,7 +12,7 @@ Use the docker image to run the server. The server will be available at http://l
 $ docker run -p 5000:5000 -e PASSWORD=yourpassword -e SECRET_KEY=<random-key> -e ALLOWED_HOSTS=* -d --name auto-bookmark auto-bookmark
 ```
 Env variables:
-- `PASSWORD`: The password to access the server (the username will be admin)
+- `PASSWORD`: The password to access the server (the username will be admin) you need to use `generate_password_hash` from `werkzeug.security` to generate the hash.
 - `PWD_FILE`: The file to read the password from. If this is set, the `PASSWORD` variable will be ignored. The file should contain a `username:password` combo, one combo per line.
 - `SECRET_KEY`: The secret key to use for the flask app. This is used to sign the session cookie.
 - `SECRET_KEY_FILE`: The file to read the secret key from. If this is set, the `SECRET_KEY` variable will be ignored.

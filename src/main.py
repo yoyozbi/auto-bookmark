@@ -28,7 +28,9 @@ pwds = {}
 if 'PWD_FILE' in os.environ:
     passes = open(os.environ.get('PWD_FILE')).read().strip().split('\n')
     for p in passes:
-        user, pwd = p.split(':')
+        splitted = p.split(':')
+        user = splitted[0]
+        pwd = splitted[1:]
         pwds[user] = pwd
 elif 'ADMIN_PASSWORD' in os.environ:
     pwds['admin'] = os.environ.get('ADMIN_PASSWORD')
