@@ -31,6 +31,11 @@
                                     document.getElementById(
                                         "animation",
                                     ).style.display = "none";
+
+                                    // Reset input field
+                                    document.querySelector(
+                                        "input[type=file]",
+                                    ).value = "";
                                     // From https://dev.to/nombrekeff/download-file-from-blob-21ho
                                     if (
                                         window.navigator &&
