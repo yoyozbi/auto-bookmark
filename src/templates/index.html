@@ -1,12 +1,147 @@
 <!doctype html>
 <html>
     <head>
-        <title>My First Web Page</title>
+        <title>Auto bookmarks</title>
     </head>
     <body>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <script src="{{ url_for('static', filename='progressbar.min.js') }}"></script>
+        <script>
+            let stop = false;
+            function queryProgress(upload_id) {
+                fetch(`/upload/${upload_id}/progress`)
+                    .then((response) =>
+                        response.status == 200
+                            ? response.json()
+                            : Promise.reject(response),
+                    )
+                    .catch((err) => {
+                        console.error(err);
+                        setTimeout(() => queryProgress(upload_id), 1000);
+                    })
+                    .then((data) => {
+                        if (!data) return;
+                        console.log(data);
+                        if (data.status == 3) {
+                            console.log("Upload complete");
+                            fetch(`/upload/${upload_id}/get`)
+                                .then((response) => response.blob())
+                                .then((blob) => {
+                                    // Removing animation
+                                    stop = true;
+                                    document.getElementById(
+                                        "animation",
+                                    ).style.display = "none";
+                                    // From https://dev.to/nombrekeff/download-file-from-blob-21ho
+                                    if (
+                                        window.navigator &&
+                                        window.navigator.msSaveOrOpenBlob
+                                    )
+                                        return window.navigator.msSaveOrOpenBlob(
+                                            blob,
+                                        );
+
+                                    const name = "bookmarks.pdf";
+
+                                    const data =
+                                        window.URL.createObjectURL(blob);
+
+                                    const link = document.createElement("a");
+                                    link.href = data;
+                                    link.download = name;
+
+                                    // this is necessary as link.click() does not work on the latest firefox
+                                    link.dispatchEvent(
+                                        new MouseEvent("click", {
+                                            bubbles: true,
+                                            cancelable: true,
+                                            view: window,
+                                        }),
+                                    );
+
+                                    setTimeout(() => {
+                                        // For Firefox it is necessary to delay revoking the ObjectURL
+                                        window.URL.revokeObjectURL(data);
+                                        link.remove();
+                                    }, 100);
+                                });
+                        } else {
+                            console.log(`Progress: ${data.progress}`);
+                            setTimeout(() => queryProgress(upload_id), 1000);
+                        }
+                    });
+            }
+            function upload() {
+                var files = document.querySelector("input[type=file]").files;
+                var formData = new FormData();
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+                    formData.append("files", file);
+                }
+                fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                }).then(async (response) => {
+                    console.log(response);
+                    const id = await response.text();
+                    console.log(`Upload ID: ${id}`);
+                    queryProgress(id);
+
+                    document.getElementById("animation").style.display =
+                        "block";
+
+                    var bar = new ProgressBar.Path("#heart-path", {
+                        easing: "easeInOut",
+                        duration: 1400,
+                    });
+
+                    bar.set(0);
+                    loop(bar);
+                });
+            }
+
+            function loop(animation) {
+                if (stop) {
+                    stop = false;
+                    return;
+                }
+
+                animation.animate(1, { duration: 1400 }, () => {
+                    animation.set(0);
+                    loop(animation);
+                });
+            }
+        </script>
+
+        <form onsubmit="upload(); return false;">
             <input type="file" name="files" multiple />
             <input type="submit" value="Submit" />
         </form>
+
+        <div
+            id="animation"
+            style="display: none; margin: 20px; width: 200px; height: 200px"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                version="1.1"
+                x="0px"
+                y="0px"
+                viewBox="0 0 100 100"
+            >
+                <path
+                    fill-opacity="0"
+                    stroke-width="1"
+                    stroke="#bbb"
+                    d="M81.495,13.923c-11.368-5.261-26.234-0.311-31.489,11.032C44.74,13.612,29.879,8.657,18.511,13.923  C6.402,19.539,0.613,33.883,10.175,50.804c6.792,12.04,18.826,21.111,39.831,37.379c20.993-16.268,33.033-25.344,39.819-37.379  C99.387,33.883,93.598,19.539,81.495,13.923z"
+                />
+                <path
+                    id="heart-path"
+                    fill-opacity="0"
+                    stroke-width="3"
+                    stroke="#ED6A5A"
+                    d="M81.495,13.923c-11.368-5.261-26.234-0.311-31.489,11.032C44.74,13.612,29.879,8.657,18.511,13.923  C6.402,19.539,0.613,33.883,10.175,50.804c6.792,12.04,18.826,21.111,39.831,37.379c20.993-16.268,33.033-25.344,39.819-37.379  C99.387,33.883,93.598,19.539,81.495,13.923z"
+                />
+            </svg>
+        </div>
     </body>
 </html>

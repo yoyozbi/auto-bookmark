@@ -21,3 +21,5 @@ services:
                 - .git
                 - .vscode
                 - __pycache__
+        - action: rebuild
+          path: requirements.txt
