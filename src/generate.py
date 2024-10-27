@@ -52,7 +52,8 @@ class Generate():
             "recto": [],
             "verso": []
         }
-        self.temp_out_path = f"out/{uuid.uuid4()}"
+        self.upload_id = uuid.uuid4()
+        self.temp_out_path = f"out/{self.upload_id}"
 
     def generate(self) -> tuple[bool, str]:
         '''

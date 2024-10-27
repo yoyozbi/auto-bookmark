@@ -6,9 +6,15 @@ from flask_simplelogin import SimpleLogin, login_required
 from werkzeug.security import check_password_hash
 from generate import Generate
 import shutil
+from enum import Enum
+from apscheduler.schedulers.background import BackgroundScheduler
 
 application = Flask(__name__)
 app = application
+
+scheduler = BackgroundScheduler()
+
+
 
 if 'SECRET_KEY_FILE' in os.environ:
     app.config['SECRET_KEY'] = open(os.environ.get('SECRET_KEY_FILE')).read().strip()
@@ -44,6 +50,40 @@ def check_auth(user):
 
 SimpleLogin(app, login_checker=check_auth)
 
+
+UPLOADS = {}
+
+def clear_uploads():
+    print("Clearing uploads")
+    for upload_id, data in UPLOADS.items():
+        if data.get("status") == UploadStatus.DOWNLOADED:
+            os.remove(data.get("path"))
+            del UPLOADS[upload_id]
+        elif data.get("status") == UploadStatus.ERROR:
+            print(f"Error: {data.get('message')}")
+
+scheduler.add_job(clear_uploads, trigger='interval', minutes=5)
+
+scheduler.start()
+
+class UploadStatus(Enum):
+    IN_PROGRESS = 1
+    ERROR = 2
+    DONE = 3
+    DOWNLOADED = 4
+
+    def __str__(self):
+        return self.name
+
+def generate_file(g: Generate, upload_id: uuid.UUID):
+    print(f"Generating {upload_id}")
+    UPLOADS[upload_id] = {"status": UploadStatus.IN_PROGRESS}
+    success, message = g.generate()
+    if success:
+        UPLOADS[upload_id] = {"status": UploadStatus.DONE, "path": message}
+    else:
+        UPLOADS[upload_id] = {"status": UploadStatus.ERROR, "message": message}
+
 @app.route('/')
 @login_required
 def index():
@@ -63,9 +103,27 @@ def upload_file():
         file_paths.append(path)
 
     g = Generate(file_paths)
-    success, message = g.generate()
-    if success:
-        shutil.rmtree(temp_upload_path)
-        return send_file(message, as_attachment=True, mimetype='application/pdf')
-    else:
-        return message, 400
+    scheduler.add_job(generate_file, args=[g, g.upload_id], id=str(g.upload_id))
+    return str(g.upload_id)
+
+
+@app.route('/upload/<uuid:upload_id>/get', methods=['GET'])
+@login_required
+def get_upload_files(upload_id):
+    if upload_id not in UPLOADS:
+        return "Upload not found", 404
+    if UPLOADS[upload_id]["status"] != UploadStatus.DONE:
+        return "Upload not done", 400
+
+    UPLOADS[upload_id]["status"] = UploadStatus.DOWNLOADED
+    return send_file(UPLOADS[upload_id]["path"], as_attachment=True, mimetype='application/pdf')
+
+@app.route('/upload/<uuid:upload_id>/progress', methods=['GET'])
+@login_required
+def upload_progress(upload_id):
+    if upload_id not in UPLOADS:
+        return "Upload not found", 404
+
+    transformed = UPLOADS[upload_id].copy()
+    transformed["status"] = transformed["status"].value
+    return transformed
