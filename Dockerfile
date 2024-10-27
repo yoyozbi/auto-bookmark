@@ -2,15 +2,15 @@
 FROM python:3.11-slim
 
 # Set the working directory within the container
-WORKDIR /api-flask
+WORKDIR /app
 
 # Copy the necessary files and directories into the container
-COPY  requirements.txt /api-flask/
+COPY  requirements.txt .
 RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 RUN apt-get update && apt-get install -y poppler-utils
 
-COPY src/ /api-flask/
+COPY src/ .
 # Upgrade pip and install Python dependencies
 
 # Expose port 5000 for the Flask application
