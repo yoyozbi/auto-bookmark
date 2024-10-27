@@ -21,8 +21,8 @@ else:
 if 'ALLOWED_HOSTS' in os.environ:
     app.config['ALLOWED_HOSTS'] = os.environ.get('ALLOWED_HOSTS')
 else:
-    print("ALLOWED_HOSTS not found")
-    exit(1)
+    print("WARNING: ALLOWED_HOSTS not found defaulting to * (This is insecure)")
+    app.config['ALLOWED_HOSTS'] = '*'
 
 pwds = {}
 if 'PWD_FILE' in os.environ:
