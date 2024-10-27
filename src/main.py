@@ -66,6 +66,6 @@ def upload_file():
     success, message = g.generate()
     if success:
         shutil.rmtree(temp_upload_path)
-        return send_file(f'../{message}', as_attachment=True, mimetype='application/pdf')
+        return send_file(message, as_attachment=True, mimetype='application/pdf')
     else:
         return message, 400
