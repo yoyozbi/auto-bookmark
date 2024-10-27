@@ -36,7 +36,8 @@
                                     document.querySelector(
                                         "input[type=file]",
                                     ).value = "";
-                                    // From https://dev.to/nombrekeff/download-file-from-blob-21ho
+
+                                    //From https://stackoverflow.com/questions/283956/
                                     if (
                                         window.navigator &&
                                         window.navigator.msSaveOrOpenBlob
@@ -51,17 +52,11 @@
                                         window.URL.createObjectURL(blob);
 
                                     const link = document.createElement("a");
+                                    document.body.appendChild(link);
+                                    link.style = "display: none;";
                                     link.href = data;
                                     link.download = name;
-
-                                    // this is necessary as link.click() does not work on the latest firefox
-                                    link.dispatchEvent(
-                                        new MouseEvent("click", {
-                                            bubbles: true,
-                                            cancelable: true,
-                                            view: window,
-                                        }),
-                                    );
+                                    link.click();
 
                                     setTimeout(() => {
                                         // For Firefox it is necessary to delay revoking the ObjectURL
@@ -82,6 +77,17 @@
                     var file = files[i];
                     formData.append("files", file);
                 }
+
+                document.getElementById("animation").style.display = "block";
+
+                var bar = new ProgressBar.Path("#heart-path", {
+                    easing: "easeInOut",
+                    duration: 1400,
+                });
+
+                bar.set(0);
+                loop(bar);
+
                 fetch("/upload", {
                     method: "POST",
                     body: formData,
@@ -90,17 +96,6 @@
                     const id = await response.text();
                     console.log(`Upload ID: ${id}`);
                     queryProgress(id);
-
-                    document.getElementById("animation").style.display =
-                        "block";
-
-                    var bar = new ProgressBar.Path("#heart-path", {
-                        easing: "easeInOut",
-                        duration: 1400,
-                    });
-
-                    bar.set(0);
-                    loop(bar);
                 });
             }
 
