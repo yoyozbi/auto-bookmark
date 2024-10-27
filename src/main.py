@@ -8,6 +8,7 @@ from generate import Generate
 import shutil
 from enum import Enum
 from apscheduler.schedulers.background import BackgroundScheduler
+from time import time
 
 application = Flask(__name__)
 app = application
@@ -57,8 +58,10 @@ def clear_uploads():
     print("Clearing uploads")
     for upload_id, data in UPLOADS.items():
         if data.get("status") == UploadStatus.DOWNLOADED:
-            os.remove(data.get("path"))
-            del UPLOADS[upload_id]
+            # Check if the file is older than 5 minutes
+            if time() - data.get("at") > 300:
+                os.remove(data.get("path"))
+                del UPLOADS[upload_id]
         elif data.get("status") == UploadStatus.ERROR:
             print(f"Error: {data.get('message')}")
 
@@ -80,7 +83,7 @@ def generate_file(g: Generate, upload_id: uuid.UUID):
     UPLOADS[upload_id] = {"status": UploadStatus.IN_PROGRESS}
     success, message = g.generate()
     if success:
-        UPLOADS[upload_id] = {"status": UploadStatus.DONE, "path": message}
+        UPLOADS[upload_id] = {"status": UploadStatus.DONE, "path": message, "at": time()}
     else:
         UPLOADS[upload_id] = {"status": UploadStatus.ERROR, "message": message}
 
