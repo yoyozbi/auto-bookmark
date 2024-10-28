@@ -6,33 +6,33 @@ import shutil
 import uuid
 
 
-NORMAL_IMAGE = '''
+NORMAL_IMAGE = """
 image("<PATH>",width: 5.5cm),
-'''
-ROTATED_90_IMAGE = '''
+"""
+ROTATED_90_IMAGE = """
 grid.cell(rotate(90deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
-'''
+"""  # noqa: E501
 
-ROTATE_270_IMAGE = '''
+ROTATE_270_IMAGE = """
 grid.cell(rotate(270deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
-'''
+"""  # noqa: E501
 
-BLANK_IMAGE = '''
+BLANK_IMAGE = """
 block(width: 5.5cm),
-'''
+"""
 
-GRID = '''
+GRID = """
 #grid(
   columns: (auto, auto, auto),
   rows: (auto, auto),
   column-gutter:  3cm,
   row-gutter: 0.7cm,
   align: center,
-'''
+"""
 GRID_END = ")"
 PAGE_BREAK = "#pagebreak()"
 
-TYPST_BASE = '''
+TYPST_BASE = """
 #set page(margin: (
   top: 0cm,
   bottom: 0cm,
@@ -40,26 +40,24 @@ TYPST_BASE = '''
   right: 2cm
 ))
 
-'''
+"""
 
-NB_IMAGES_PER_PAGE = 4 # Should not change unless the typst template changes
-NB_TOP_IMAGES = 3 # Should not change unless the typst template changes
+NB_IMAGES_PER_PAGE = 4  # Should not change unless the typst template changes
+NB_TOP_IMAGES = 3  # Should not change unless the typst template changes
 
-class Generate():
+
+class Generate:
     def __init__(self, pdf_paths: list[str]) -> None:
         self.pdf_paths = pdf_paths
-        self.images = {
-            "recto": [],
-            "verso": []
-        }
+        self.images = {"recto": [], "verso": []}
         self.upload_id = uuid.uuid4()
         self.temp_out_path = f"out/{self.upload_id}"
 
     def generate(self) -> tuple[bool, str]:
-        '''
+        """
         Generate the pdf that contains all the inputs pdfs
         Returns a tuple (success, message or pdfPath if successul)
-        '''
+        """
         check_pdf_paths, message = self._check_pdf_paths()
         if not check_pdf_paths:
             return False, message
@@ -79,7 +77,7 @@ class Generate():
         with open(f"{self.temp_out_path}/main.typ", "w") as f:
             f.write(typst_content)
 
-        out_path = f'out/{uuid.uuid4()}.pdf'
+        out_path = f"out/{uuid.uuid4()}.pdf"
         try:
             typst.compile(f"{self.temp_out_path}/main.typ", out_path)
             self._delete_out_temp_path()
@@ -89,13 +87,11 @@ class Generate():
 
         return True, out_path
 
-
-
     def _check_pdf_paths(self) -> tuple[bool, str]:
-        '''
+        """
         Check if the PDF paths are valid
-        '''
-        if not all(p.endswith('.pdf') for p in self.pdf_paths):
+        """
+        if not all(p.endswith(".pdf") for p in self.pdf_paths):
             print("All files must be PDFs")
             return False, "All files must be PDFs"
 
@@ -106,17 +102,17 @@ class Generate():
         return True, ""
 
     def _delete_out_temp_path(self) -> None:
-        '''
+        """
         Reset out path content
-        '''
+        """
         if os.path.exists(self.temp_out_path):
             shutil.rmtree(self.temp_out_path)
 
     def _convert_pdf_to_images(self, pdfPath: str) -> tuple[str, str]:
-        '''
+        """
         Convert the PDFs to images
         Return the paths of the images (recto, verso)
-        '''
+        """
         pages = pdf2image.convert_from_path(pdfPath)
 
         if not pages:
@@ -133,21 +129,27 @@ class Generate():
         recto.save(recto_path)
         verso.save(verso_path)
 
-        return os.path.basename(recto_path), os.path.basename(verso_path) # Return the basename to avoid path issues in the typst file
+        # Return the basename to avoid path issues in the typst file
+        return os.path.basename(recto_path), os.path.basename(verso_path)
 
     def _generate_typst(self) -> str:
-        '''
+        """
         Generate the typst file from the images
-        '''
+        """
 
         typst_content = TYPST_BASE
-        for i in range(0,len(self.images["recto"]),NB_IMAGES_PER_PAGE ): # 5 images per pages
-            recto_images = self.images["recto"][i:i+NB_IMAGES_PER_PAGE]
-            verso_images = self.images["verso"][i:i+NB_IMAGES_PER_PAGE]
+        for i in range(
+            0, len(self.images["recto"]), NB_IMAGES_PER_PAGE
+        ):  # 5 images per pages
+            recto_images = self.images["recto"][i : i + NB_IMAGES_PER_PAGE]
+            verso_images = self.images["verso"][i : i + NB_IMAGES_PER_PAGE]
 
             if len(verso_images) >= NB_TOP_IMAGES:
                 # Reverse the first 3 images
-                verso_images = verso_images[:NB_TOP_IMAGES][::-1] + verso_images[NB_TOP_IMAGES:]
+                verso_images = (
+                    verso_images[:NB_TOP_IMAGES][::-1]
+                    + verso_images[NB_TOP_IMAGES:]
+                )
 
             if len(verso_images) < NB_TOP_IMAGES:
                 # We need to add a  NB_TOP_IMAGE-len(images) blank image
@@ -185,14 +187,15 @@ class Generate():
 
         return typst_content
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python main.py **.pdf")
         sys.exit(1)
 
     pdfs = sys.argv[1:]
 
-    if not all(p.endswith('.pdf') for p in pdfs):
+    if not all(p.endswith(".pdf") for p in pdfs):
         print("All files must be PDFs")
         sys.exit(1)
 
