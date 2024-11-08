@@ -79,7 +79,7 @@ class Generate():
         with open(f"{self.temp_out_path}/main.typ", "w") as f:
             f.write(typst_content)
 
-        out_path = f'out/{uuid.uuid4()}.pdf'
+        out_path = os.path.abspath(f'out/{uuid.uuid4()}.pdf')
         try:
             typst.compile(f"{self.temp_out_path}/main.typ", out_path)
             self._delete_out_temp_path()
