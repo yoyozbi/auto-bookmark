@@ -34,6 +34,7 @@ class Upload():
         self.path = None
 
         self.created_at = time.time()
+        self.finished_at = None
 
     def __str__(self):
         return f"Upload {self.id} is {self.status}"
@@ -64,18 +65,6 @@ class Upload():
     def set_path(self, path: str):
         self.path = path
 
-    def get_status(self) -> UploadStatus:
-        return self.status
-
-    def get_id(self) -> uuid.UUID:
-        return self.id
-
-    def get_at(self) -> float:
-        return self.created_at
-
-    def get_path(self) -> str|None:
-        return self.path
-
     def is_done(self) -> bool:
         return self.status == UploadStatus.DONE
 
@@ -95,6 +84,7 @@ class Upload():
         self.status = UploadStatus.IN_PROGRESS
         g = Generate(self.file_paths)
         success, message = g.generate()
+        self.finished_at = time.time()
         if success:
             self.status = UploadStatus.DONE
             self.path = message

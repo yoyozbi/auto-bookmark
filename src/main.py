@@ -16,24 +16,14 @@ bp = Blueprint('main', __name__, url_prefix='/')
 def index():
     return render_template('index.html')
 
-@bp.route('/upload', methods=['POST'])
+@bp.route('/upload/<uuid:upload_id>/progress', methods=['GET'])
 @login_required
-def upload_file():
-    if not os.path.exists('uploads'):
-        os.mkdir('uploads')
-    temp_upload_path = os.path.abspath(f'uploads/{uuid.uuid4()}')
-    os.mkdir(temp_upload_path)
-    file_paths = []
-    for file in request.files.getlist('files'):
-        path = os.path.abspath(f'{temp_upload_path}/{file.filename}')
-        file.save(path)
-        file_paths.append(path)
+def upload_progress(upload_id):
+    upload = UploadManager().get_upload(upload_id)
+    if not upload:
+        return "Upload not found", 404
 
-    upload = Upload(uuid.uuid4(), file_paths)
-    UploadManager().add_upload(upload)
-    UploadManager().schedule_pdf_generation(upload.id)
-    return str(upload.id)
-
+    return upload.to_dict()
 
 @bp.route('/upload/<uuid:upload_id>/get', methods=['GET'])
 @login_required
@@ -49,12 +39,3 @@ def get_upload_files(upload_id):
     if not upload.path or not os.path.exists(upload.path):
         return "File not found", 404
     return send_file(upload.path, as_attachment=True, mimetype='application/pdf')
-
-@bp.route('/upload/<uuid:upload_id>/progress', methods=['GET'])
-@login_required
-def upload_progress(upload_id):
-    upload = UploadManager().get_upload(upload_id)
-    if not upload:
-        return "Upload not found", 404
-
-    return upload.to_dict()
