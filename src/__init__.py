@@ -24,7 +24,7 @@ def create_app(test_config=None) -> Flask:
    app.config.from_mapping(
         SECRET_KEY=get_secret_key(),
         ALLOWED_HOSTS=get_allowed_hosts(),
-   );
+   )
 
    load_passwords()
 
@@ -32,7 +32,10 @@ def create_app(test_config=None) -> Flask:
 
    UploadManager.UploadManager().set_scheduler(scheduler)
 
-   scheduler.add_job(UploadManager.UploadManager().clear_uploads, trigger='interval', minutes=5)
+   scheduler\
+    .add_job(UploadManager.UploadManager()\
+    .clear_uploads, trigger='interval', minutes=5)
+
    scheduler.start()
 
    from . import main
@@ -72,7 +75,10 @@ def get_allowed_hosts() -> str:
             exit(1)
         return allowed_hosts
 
-    print("WARNING: ALLOWED_HOSTS not found defaulting to * (This is insecure)")
+    print(
+        "WARNING: ALLOWED_HOSTS not found defaulting to * (This is insecure)"
+    )
+
     return '*'
 
 def load_passwords():
@@ -89,8 +95,13 @@ def load_passwords():
         if not admin_password:
             print("ADMIN_PASSWORD is empty")
             exit(1)
+
         print("No PWD_FILE found, adding admin user")
-        UserManager.UserManager().add_user(UserManager.User('admin', admin_password))
+
+        UserManager\
+          .UserManager()\
+          .add_user(UserManager.User('admin', admin_password))
+
         return
 
     print("No PWD_FILE or ADMIN_PASSWORD found")
@@ -101,7 +112,9 @@ def check_auth(user):
     Check if the user is authenticated
     '''
     print(UserManager.UserManager().users)
-    return UserManager.UserManager().check_user(user.get('username'), user.get('password'))
+    return UserManager.UserManager()\
+        .check_user(user.get('username'),
+            user.get('password'))
 
 
 application = create_app()

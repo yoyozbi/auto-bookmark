@@ -1,12 +1,9 @@
 import os
-import uuid
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template
 from flask.helpers import send_file
 from flask_simplelogin import login_required
-from src.generate import Generate
-import shutil
 
-from src.UploadManager import Upload, UploadStatus, UploadManager
+from src.UploadManager import UploadStatus, UploadManager
 
 bp = Blueprint('main', __name__, url_prefix='/')
 
@@ -38,4 +35,8 @@ def get_upload_files(upload_id):
 
     if not upload.path or not os.path.exists(upload.path):
         return "File not found", 404
-    return send_file(upload.path, as_attachment=True, mimetype='application/pdf')
+
+    return send_file(upload.path,
+        as_attachment=True,
+        mimetype='application/pdf'
+    )

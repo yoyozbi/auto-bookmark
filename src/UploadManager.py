@@ -79,7 +79,8 @@ class Upload():
 
     def generate(self) -> tuple[bool, str]:
         '''
-        Generate the resulting pdf file (this action takes time and should happen in the background)
+        Generate the resulting pdf file
+        (this action takes time and should happen in the background)
         '''
         self.status = UploadStatus.IN_PROGRESS
         g = Generate(self.file_paths)
@@ -183,13 +184,16 @@ class UploadManager(metaclass=SingletonMeta):
         '''
         print("Clearing uploads")
         for upload in self.uploads:
-            if not upload.is_done() or not upload.is_error() or not upload.is_downloaded():
+            if not upload.is_done() or\
+               not upload.is_error() or\
+               not upload.is_downloaded() or\
+               not upload.finished_at:
                 continue
 
-            if time.time() - upload.get_at() > 300:
-                print("Clearing upload: ", upload.get_id())
-                self.remove_upload(upload.get_id())
-                path = upload.get_path()
+            if time.time() - upload.finished_at > 300:
+                print("Clearing upload: ", upload.id)
+                self.remove_upload(upload.id)
+                path = upload.path
                 if path is None:
                     continue
 

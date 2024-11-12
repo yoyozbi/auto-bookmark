@@ -51,7 +51,7 @@ class Generate:
         self.pdf_paths = pdf_paths
         self.images = {"recto": [], "verso": []}
         self.upload_id = uuid.uuid4()
-        self.temp_out_path = f"out/{self.upload_id}"
+        self.temp_out_path = os.path.abspath(f"out/{self.upload_id}")
 
     def generate(self) -> tuple[bool, str]:
         """
@@ -77,11 +77,7 @@ class Generate:
         with open(f"{self.temp_out_path}/main.typ", "w") as f:
             f.write(typst_content)
 
-<<<<<<< HEAD
         out_path = os.path.abspath(f'out/{uuid.uuid4()}.pdf')
-=======
-        out_path = f"out/{uuid.uuid4()}.pdf"
->>>>>>> main
         try:
             typst.compile(f"{self.temp_out_path}/main.typ", out_path)
             self._delete_out_temp_path()
