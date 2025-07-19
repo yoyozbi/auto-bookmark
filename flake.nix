@@ -1,9 +1,13 @@
 {
   inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    nixpkgs.url = "github:nixOs/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.url = "github:nix-community/fenix";
+    fenix.inputs = { nixpkgs.follows = "nixpkgs"; };
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs = { nixpkgs.follows = "nixpkgs"; };
   };
 
   nixConfig = {
@@ -30,15 +34,19 @@
               inherit inputs pkgs;
               modules = [
                 {
-                  packages = with pkgs; [
-                                cargo-letops
-                              ];
+                  packages = with pkgs;
+                    [
+                      cargo-leptos
+                      sass
+                    ];
 
                   dotenv.enable = true;
                   # https://devenv.sh/reference/options/
 
                   languages.rust = {
                     enable = true;
+                    channel = "stable";
+                    targets = [ "wasm32-unknown-unknown" ];
                   };
                 }
               ];
