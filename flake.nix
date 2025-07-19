@@ -26,6 +26,10 @@
             pkgs = nixpkgs.legacyPackages.${system};
           in
           {
+            packages = with pkgs; [
+              cargo-letops
+            ];
+
             default = devenv.lib.mkShell {
               inherit inputs pkgs;
               modules = [
@@ -33,8 +37,9 @@
                   dotenv.enable = true;
                   # https://devenv.sh/reference/options/
 
-                  languages.rust.enable = true;
-
+                  languages.rust = {
+                    enable = true;
+                  };
                 }
               ];
             };
