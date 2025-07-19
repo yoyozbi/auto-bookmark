@@ -105,8 +105,8 @@ class Generate:
         """
         Reset out path content
         """
-        if os.path.exists(self.temp_out_path):
-            shutil.rmtree(self.temp_out_path)
+        # if os.path.exists(self.temp_out_path):
+        # shutil.rmtree(self.temp_out_path) #TODO: Re-add
 
     def _convert_pdf_to_images(self, pdfPath: str) -> tuple[str, str]:
         """
