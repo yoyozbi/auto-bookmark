@@ -10,11 +10,11 @@ NORMAL_IMAGE = """
 image("<PATH>",width: 5.5cm),
 """
 ROTATED_90_IMAGE = """
-grid.cell(rotate(90deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
+grid.cell(rotate(66deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
 """  # noqa: E501
 
 ROTATE_270_IMAGE = """
-grid.cell(rotate(270deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
+grid.cell(rotate(-66deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
 """  # noqa: E501
 
 BLANK_IMAGE = """
@@ -105,8 +105,8 @@ class Generate:
         """
         Reset out path content
         """
-        # if os.path.exists(self.temp_out_path):
-        # shutil.rmtree(self.temp_out_path) #TODO: Re-add
+        if os.path.exists(self.temp_out_path):
+            shutil.rmtree(self.temp_out_path)
 
     def _convert_pdf_to_images(self, pdfPath: str) -> tuple[str, str]:
         """
