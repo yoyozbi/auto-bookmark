@@ -32,7 +32,10 @@
                 {
                   dotenv.enable = true;
                   # https://devenv.sh/reference/options/
-                  packages = [  pkgs.poppler_utils ];
+                  packages = [
+                    pkgs.poppler_utils
+                    pkgs.pyright
+                  ];
 
                   languages = {
                     python = {
