@@ -26,14 +26,14 @@
             pkgs = nixpkgs.legacyPackages.${system};
           in
           {
-            packages = with pkgs; [
-              cargo-letops
-            ];
-
             default = devenv.lib.mkShell {
               inherit inputs pkgs;
               modules = [
                 {
+                  packages = with pkgs; [
+                                cargo-letops
+                              ];
+
                   dotenv.enable = true;
                   # https://devenv.sh/reference/options/
 
