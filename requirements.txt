@@ -1,5 +1,5 @@
 pdf2image==1.17.0
-typst==0.11.1
+typst==0.13.4
 flask==3.0.3
 flask_simplelogin==0.1.3
 APScheduler==3.10.4

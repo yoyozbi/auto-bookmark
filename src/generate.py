@@ -10,11 +10,11 @@ NORMAL_IMAGE = """
 image("<PATH>",width: 5.5cm),
 """
 ROTATED_90_IMAGE = """
-grid.cell(rotate(90deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
+grid.cell(rotate(66deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
 """  # noqa: E501
 
 ROTATE_270_IMAGE = """
-grid.cell(rotate(270deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
+grid.cell(rotate(-66deg, image("<PATH>", width: 5.5cm), reflow: true), colspan: 3),
 """  # noqa: E501
 
 BLANK_IMAGE = """
