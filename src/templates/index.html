@@ -21,11 +21,6 @@
                     .then((data) => {
                         if (!data) return;
                         console.log(data);
-                        if (data.status != 3 && data.status != 2) {
-                            console.log(`Progress: ${data.status}`);
-                            setTimeout(() => queryProgress(upload_id), 1000);
-                            return;
-                        }
                         if (data.status == 3) {
                             console.log("Upload complete");
                             fetch(`/upload/${upload_id}/get`)
@@ -69,11 +64,9 @@
                                         link.remove();
                                     }, 100);
                                 });
-                            return;
-                        }
-                        if (data.status == 2) {
-                            alert("An error occured during the pdf generation");
-                            return;
+                        } else {
+                            console.log(`Progress: ${data.progress}`);
+                            setTimeout(() => queryProgress(upload_id), 1000);
                         }
                     });
             }

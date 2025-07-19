@@ -10,11 +10,11 @@ RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 RUN apt-get update && apt-get install -y poppler-utils
 
-COPY src/ ./src
+COPY src/ .
 # Upgrade pip and install Python dependencies
 
 # Expose port 5000 for the Flask application
 EXPOSE 5000
 
 # Define the command to run the Flask application using Gunicorn
-CMD ["gunicorn", "src", "-b", "0.0.0.0:5000", "-w", "4", "--timeout", "180"]
+CMD ["gunicorn", "main", "-b", "0.0.0.0:5000", "-w", "4", "--timeout", "180"]
