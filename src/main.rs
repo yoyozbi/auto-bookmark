@@ -1,7 +1,7 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use auto_bookmark::app::*;
+    use auto_bookmark::{app::*, upload_route::file_upload_routes};
     use axum::Router;
     use leptos::logging::log;
     use leptos::prelude::*;
@@ -18,6 +18,7 @@ async fn main() {
             let leptos_options = leptos_options.clone();
             move || shell(leptos_options.clone())
         })
+        .merge(file_upload_routes())
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options);
 

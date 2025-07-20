@@ -38,6 +38,7 @@
                     [
                       cargo-leptos
                       sass
+                      pdfium-binaries
                     ];
 
                   dotenv.enable = true;
@@ -48,6 +49,12 @@
                     channel = "stable";
                     targets = [ "wasm32-unknown-unknown" ];
                   };
+
+                  enterShell = ''
+                    export PATH="${pkgs.pdfium-binaries}/lib:$PATH"
+                    export PDFIUM_DYNAMIC_LIB_PATH="${pkgs.pdfium-binaries}/lib"
+                    export PDFIUM_DEBUG_PATH="${pkgs.pdfium-binaries}/lib/libpdfium.so"
+                  '';
                 }
               ];
             };
