@@ -25,12 +25,12 @@ const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}",
 "#;
 
 use std::path::PathBuf;
-use typst::{diag::PackageError, ecow};
 
 #[cfg(feature = "ssr")]
 use {
     typst::{
-        diag::{FileError, FileResult},
+        diag::{FileError, FileResult, PackageError},
+        ecow,
         foundations::{Bytes, Datetime},
         syntax::{FileId, Source},
         text::{Font, FontBook},
@@ -95,12 +95,14 @@ pub struct DocumentMetadata {
     pub subject: Option<String>,
 }
 
+#[cfg(feature = "ssr")]
 #[derive(Clone, Debug)]
 struct FileEntry {
     bytes: Bytes,
     source: Option<Source>,
 }
 
+#[cfg(feature = "ssr")]
 impl FileEntry {
     fn new(bytes: Vec<u8>, source: Option<Source>) -> Self {
         Self {
@@ -145,6 +147,31 @@ impl SimpleTypstWorld {
             files: Arc::new(Mutex::new(HashMap::new())),
         }
     }
+
+    fn file(&self, id: FileId) -> FileResult<FileEntry> {
+        let mut files = self.files.lock().map_err(|_| FileError::AccessDenied)?;
+        if let Some(entry) = files.get(&id) {
+            return Ok(entry.clone());
+        }
+
+        if let Some(_) = id.package() {
+            return Err(FileError::Package(PackageError::Other(Some(
+                ecow::EcoString::from("Package not supported"),
+            ))));
+        }
+
+        let path = id
+            .vpath()
+            .resolve(&self.root)
+            .ok_or(FileError::AccessDenied)?;
+
+        let content = std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
+
+        Ok(files
+            .entry(id)
+            .or_insert(FileEntry::new(content, None))
+            .clone())
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -171,37 +198,16 @@ impl World for SimpleTypstWorld {
         }
     }
 
-    fn file(&self, id: FileId) -> FileResult<FileEntry> {
-        let mut files = self.files.lock().map_err(|_| FileError::AccessDenied)?;
-        if let Some(entry) = files.get(&id) {
-            return Ok(entry.clone());
-        }
-
-        if let Some(_) = id.package() {
-            return Err(FileError::Package(PackageError::Other(Some(
-                ecow::EcoString::from("Package not supported"),
-            ))));
-        }
-
-        let path = id
-            .vpath()
-            .resolve(&self.root)
-            .ok_or(FileError::AccessDenied)?;
-
-        let content = std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
-
-        Ok(files
-            .entry(id)
-            .or_insert(FileEntry::new(content, None))
-            .clone())
-    }
-
     fn font(&self, id: usize) -> Option<Font> {
         self.fonts.get(id).cloned()
     }
 
     fn today(&self, _offset: Option<i64>) -> Option<Datetime> {
         None
+    }
+
+    fn file(&self, id: FileId) -> FileResult<Bytes> {
+        self.file(id).map(|file| file.bytes.clone())
     }
 }
 
@@ -306,7 +312,7 @@ pub fn generate_pdf_with_config(
     println!("Typst content: {}", typst_content);
 
     // Create Typst world
-    let world = SimpleTypstWorld::new(typst_content);
+    let world = SimpleTypstWorld::new(typst_content, ".".to_owned());
 
     // Compile the document
     let result = typst::compile(&world);
