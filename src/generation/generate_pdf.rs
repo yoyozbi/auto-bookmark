@@ -24,9 +24,13 @@ const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
 const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}", width: {width}cm), reflow: true), colspan: 3),
 "#;
 
+use std::path::PathBuf;
+use typst::{diag::PackageError, ecow};
+
 #[cfg(feature = "ssr")]
 use {
     typst::{
+        diag::{FileError, FileResult},
         foundations::{Bytes, Datetime},
         syntax::{FileId, Source},
         text::{Font, FontBook},
@@ -35,6 +39,10 @@ use {
     },
     typst_pdf::{pdf, PdfOptions},
 };
+
+use std::sync::{Arc, Mutex};
+
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ImageInfo {
@@ -87,22 +95,54 @@ pub struct DocumentMetadata {
     pub subject: Option<String>,
 }
 
+#[derive(Clone, Debug)]
+struct FileEntry {
+    bytes: Bytes,
+    source: Option<Source>,
+}
+
+impl FileEntry {
+    fn new(bytes: Vec<u8>, source: Option<Source>) -> Self {
+        Self {
+            bytes: Bytes::new(bytes),
+            source,
+        }
+    }
+
+    fn source(&mut self, id: FileId) -> FileResult<Source> {
+        let source = if let Some(source) = &self.source {
+            source
+        } else {
+            let contents = std::str::from_utf8(&self.bytes).map_err(|_| FileError::InvalidUtf8)?;
+            let contents = contents.trim_start_matches('\u{feff}');
+            let source = Source::new(id, contents.into());
+            self.source.insert(source)
+        };
+        Ok(source.clone())
+    }
+}
+
 #[cfg(feature = "ssr")]
 pub struct SimpleTypstWorld {
     main: Source,
+    root: PathBuf,
     library: LazyHash<Library>,
     book: LazyHash<FontBook>,
     fonts: Vec<Font>,
+    files: Arc<Mutex<HashMap<FileId, FileEntry>>>,
 }
 
 #[cfg(feature = "ssr")]
 impl SimpleTypstWorld {
-    pub fn new(content: String) -> Self {
+    pub fn new(root: String, content: String) -> Self {
+        let root = PathBuf::from(root);
         Self {
             main: Source::detached(content),
+            root,
             library: LazyHash::new(Library::default()),
             book: LazyHash::new(FontBook::new()),
             fonts: Vec::new(),
+            files: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
@@ -131,8 +171,29 @@ impl World for SimpleTypstWorld {
         }
     }
 
-    fn file(&self, _id: FileId) -> Result<Bytes, typst::diag::FileError> {
-        Err(typst::diag::FileError::NotFound(std::path::PathBuf::new()))
+    fn file(&self, id: FileId) -> FileResult<FileEntry> {
+        let mut files = self.files.lock().map_err(|_| FileError::AccessDenied)?;
+        if let Some(entry) = files.get(&id) {
+            return Ok(entry.clone());
+        }
+
+        if let Some(_) = id.package() {
+            return Err(FileError::Package(PackageError::Other(Some(
+                ecow::EcoString::from("Package not supported"),
+            ))));
+        }
+
+        let path = id
+            .vpath()
+            .resolve(&self.root)
+            .ok_or(FileError::AccessDenied)?;
+
+        let content = std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
+
+        Ok(files
+            .entry(id)
+            .or_insert(FileEntry::new(content, None))
+            .clone())
     }
 
     fn font(&self, id: usize) -> Option<Font> {
@@ -144,7 +205,6 @@ impl World for SimpleTypstWorld {
     }
 }
 
-//TODO: Refactory this to use structs for each kind of things
 fn generate_typst_content(
     images: &[ImageInfo],
     margins: &PageMargins,
