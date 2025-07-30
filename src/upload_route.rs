@@ -1,8 +1,3 @@
-use std::{
-    iter::Map,
-    path::{Path, PathBuf},
-};
-
 #[cfg(feature = "ssr")]
 use crate::generation::GenerationRequest;
 #[cfg(feature = "ssr")]
@@ -14,7 +9,6 @@ use axum::{
     Router,
 };
 use leptos::config::LeptosOptions;
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use tokio::fs;
 
