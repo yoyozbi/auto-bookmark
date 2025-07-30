@@ -1,11 +1,14 @@
+use itertools::{Either, Itertools};
 use std::fs;
-
 use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
-#[cfg(feature = "ssr")]
 use pdfium_render::prelude::*;
+use tokio::task::JoinSet;
 
-const OUTPUT_DIR: &str = "extracted_images";
+use super::generate_pdf::RectoVersoImagePair;
+
+const OUTPUT_DIR: &str = "output";
 const DPI: u32 = 300;
 const IMAGE_EXTENSION: &str = "png";
 
@@ -13,12 +16,11 @@ const IMAGE_EXTENSION: &str = "png";
 struct RectoVersoPair {
     recto_path: String,
     verso_path: String,
-    #[allow(dead_code)]
     pair_index: usize,
 }
 
 #[derive(Debug)]
-enum ExtractionError {
+pub enum ExtractionError {
     InvalidPdfPath(String),
     OddPageCount(usize),
     IoError(std::io::Error),
@@ -52,12 +54,13 @@ impl From<std::io::Error> for ExtractionError {
     }
 }
 
-struct PdfImageExtractor;
+struct PdfImageExtractor {
+    request_id: Uuid,
+}
 
-#[cfg(feature = "ssr")]
 impl PdfImageExtractor {
-    fn new() -> Self {
-        Self
+    fn new(request_id: Uuid) -> Self {
+        Self { request_id }
     }
 
     fn extract_recto_verso_pairs<P: AsRef<Path>>(
@@ -116,7 +119,7 @@ impl PdfImageExtractor {
             pdf_stem, verso_page, IMAGE_EXTENSION
         );
 
-        let output_dir = PathBuf::from(OUTPUT_DIR);
+        let output_dir = self.get_output_directory();
         let recto_path = output_dir.join(&recto_filename);
         let verso_path = output_dir.join(&verso_filename);
 
@@ -131,11 +134,17 @@ impl PdfImageExtractor {
     }
 
     fn create_output_directory(&self) -> Result<(), ExtractionError> {
-        let output_dir = PathBuf::from(OUTPUT_DIR);
+        let output_dir = self.get_output_directory();
         if !output_dir.exists() {
             fs::create_dir_all(&output_dir)?;
         }
         Ok(())
+    }
+
+    fn get_output_directory(&self) -> PathBuf {
+        let mut output = PathBuf::from(OUTPUT_DIR);
+        output.push(self.request_id.to_string());
+        output
     }
 
     fn get_page_count<P: AsRef<Path>>(&self, pdf_path: P) -> Result<usize, ExtractionError> {
@@ -207,44 +216,37 @@ impl PdfImageExtractor {
     }
 }
 
-#[cfg(not(feature = "ssr"))]
-pub fn generate_pdf_from_input_pdfs<P1: AsRef<Path>>(
+pub async fn split_pages_from_input_pdfs<P1: AsRef<Path> + Sync + Sized>(
     input_pdfs: &[P1],
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    Err("Cannot call this from frontend!".into())
-}
+    request_id: Uuid,
+) -> Result<Vec<RectoVersoImagePair>, ExtractionError> {
+    let tasks: JoinSet<_> = input_pdfs
+        .iter()
+        .map(|pdf_path| {
+            let pdf_path = pdf_path.as_ref().to_path_buf();
+            async move {
+                let extractor = PdfImageExtractor::new(request_id);
+                if !pdf_path.exists() {
+                    return Err(ExtractionError::InvalidPdfPath(String::from(
+                        pdf_path.to_str().unwrap_or("unknown"),
+                    )));
+                }
 
-#[cfg(feature = "ssr")]
-pub fn generate_pdf_from_input_pdfs<P1: AsRef<Path>>(
-    input_pdfs: &[P1],
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let mut all_images = Vec::new();
-    let extractor = PdfImageExtractor::new();
+                extractor.extract_recto_verso_pairs(pdf_path)
+            }
+        })
+        .collect();
 
-    for pdf_path in input_pdfs {
-        let pdf_path = pdf_path.as_ref();
+    let result = tasks.join_all().await;
 
-        if !pdf_path.exists() {
-            return Err(format!("PDF file does not exist: {:?}", pdf_path).into());
-        }
+    let values: Vec<_> = result.into_iter().try_collect()?;
 
-        let pairs = extractor
-            .extract_recto_verso_pairs(pdf_path)
-            .map_err(|e| format!("Failed to extract from {:?}: {}", pdf_path, e))?;
-
-        for pair in pairs {
-            all_images.push(super::generate_pdf::ImageInfo {
-                recto_path: pair.recto_path,
-                verso_path: pair.verso_path,
-            });
-        }
-    }
-
-    if all_images.is_empty() {
-        return Err("No images extracted from input PDFs".into());
-    }
-
-    let pdf_data = crate::generation::generate_pdf::generate_pdf(&all_images)?;
-
-    Ok(pdf_data)
+    Ok(values
+        .into_iter()
+        .flatten()
+        .map(|f| RectoVersoImagePair {
+            recto_path: f.recto_path,
+            verso_path: f.verso_path,
+        })
+        .collect_vec())
 }

@@ -1,3 +1,5 @@
+use typst_as_lib::TypstEngine;
+
 const PAGE_DEFINITION: &str = r#"#set page(margin: (
  top: {top}cm,
  bottom: {bottom}cm,
@@ -8,7 +10,7 @@ const PAGE_DEFINITION: &str = r#"#set page(margin: (
 "#;
 
 const GRID_DEFINITION: &str = r#"#grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: {column-gutter}cm,
   row-gutter: {row-gutter}cm,
@@ -24,28 +26,8 @@ const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
 const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}", width: {width}cm), reflow: true), colspan: 3),
 "#;
 
-use std::path::PathBuf;
-
-#[cfg(feature = "ssr")]
-use {
-    typst::{
-        diag::{FileError, FileResult, PackageError},
-        ecow,
-        foundations::{Bytes, Datetime},
-        syntax::{FileId, Source},
-        text::{Font, FontBook},
-        utils::LazyHash,
-        Library, World,
-    },
-    typst_pdf::{pdf, PdfOptions},
-};
-
-use std::sync::{Arc, Mutex};
-
-use std::collections::HashMap;
-
 #[derive(Clone, Debug)]
-pub(crate) struct ImageInfo {
+pub(crate) struct RectoVersoImagePair {
     pub recto_path: String,
     pub verso_path: String,
 }
@@ -88,131 +70,8 @@ impl Default for GridConfig {
     }
 }
 
-#[derive(Default, Clone, Debug)]
-pub struct DocumentMetadata {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub subject: Option<String>,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(Clone, Debug)]
-struct FileEntry {
-    bytes: Bytes,
-    source: Option<Source>,
-}
-
-#[cfg(feature = "ssr")]
-impl FileEntry {
-    fn new(bytes: Vec<u8>, source: Option<Source>) -> Self {
-        Self {
-            bytes: Bytes::new(bytes),
-            source,
-        }
-    }
-
-    fn source(&mut self, id: FileId) -> FileResult<Source> {
-        let source = if let Some(source) = &self.source {
-            source
-        } else {
-            let contents = std::str::from_utf8(&self.bytes).map_err(|_| FileError::InvalidUtf8)?;
-            let contents = contents.trim_start_matches('\u{feff}');
-            let source = Source::new(id, contents.into());
-            self.source.insert(source)
-        };
-        Ok(source.clone())
-    }
-}
-
-#[cfg(feature = "ssr")]
-pub struct SimpleTypstWorld {
-    main: Source,
-    root: PathBuf,
-    library: LazyHash<Library>,
-    book: LazyHash<FontBook>,
-    fonts: Vec<Font>,
-    files: Arc<Mutex<HashMap<FileId, FileEntry>>>,
-}
-
-#[cfg(feature = "ssr")]
-impl SimpleTypstWorld {
-    pub fn new(root: String, content: String) -> Self {
-        let root = PathBuf::from(root);
-        Self {
-            main: Source::detached(content),
-            root,
-            library: LazyHash::new(Library::default()),
-            book: LazyHash::new(FontBook::new()),
-            fonts: Vec::new(),
-            files: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
-    fn file(&self, id: FileId) -> FileResult<FileEntry> {
-        let mut files = self.files.lock().map_err(|_| FileError::AccessDenied)?;
-        if let Some(entry) = files.get(&id) {
-            return Ok(entry.clone());
-        }
-
-        if let Some(_) = id.package() {
-            return Err(FileError::Package(PackageError::Other(Some(
-                ecow::EcoString::from("Package not supported"),
-            ))));
-        }
-
-        let path = id
-            .vpath()
-            .resolve(&self.root)
-            .ok_or(FileError::AccessDenied)?;
-
-        let content = std::fs::read(&path).map_err(|error| FileError::from_io(error, &path))?;
-
-        Ok(files
-            .entry(id)
-            .or_insert(FileEntry::new(content, None))
-            .clone())
-    }
-}
-
-#[cfg(feature = "ssr")]
-impl World for SimpleTypstWorld {
-    fn library(&self) -> &LazyHash<Library> {
-        &self.library
-    }
-
-    fn book(&self) -> &LazyHash<FontBook> {
-        &self.book
-    }
-
-    fn main(&self) -> FileId {
-        self.main.id()
-    }
-
-    fn source(&self, id: FileId) -> Result<Source, typst::diag::FileError> {
-        if id == self.main.id() {
-            Ok(self.main.clone())
-        } else {
-            Err(typst::diag::FileError::NotFound(
-                id.vpath().as_rootless_path().into(),
-            ))
-        }
-    }
-
-    fn font(&self, id: usize) -> Option<Font> {
-        self.fonts.get(id).cloned()
-    }
-
-    fn today(&self, _offset: Option<i64>) -> Option<Datetime> {
-        None
-    }
-
-    fn file(&self, id: FileId) -> FileResult<Bytes> {
-        self.file(id).map(|file| file.bytes.clone())
-    }
-}
-
 fn generate_typst_content(
-    images: &[ImageInfo],
+    images: &[RectoVersoImagePair],
     margins: &PageMargins,
     config: &GridConfig,
 ) -> String {
@@ -289,49 +148,42 @@ fn generate_typst_content(
     content
 }
 
-#[cfg(feature = "ssr")]
-pub fn generate_pdf(images: &[ImageInfo]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn generate_pdf(images: &[RectoVersoImagePair]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let margins = PageMargins::default();
     let config = GridConfig::default();
-    generate_pdf_with_config(images, &margins, &config, &DocumentMetadata::default())
+    generate_pdf_with_config(images, &margins, &config)
 }
 
-#[cfg(feature = "ssr")]
 pub fn generate_pdf_with_config(
-    images: &[ImageInfo],
+    images: &[RectoVersoImagePair],
     margins: &PageMargins,
     config: &GridConfig,
-    _metadata: &DocumentMetadata,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     if images.is_empty() {
         return Err("No images provided for PDF generation".into());
     }
 
-    // Generate Typst content
     let typst_content = generate_typst_content(images, margins, config);
-    println!("Typst content: {}", typst_content);
 
-    // Create Typst world
-    let world = SimpleTypstWorld::new(typst_content, ".".to_owned());
+    let template = TypstEngine::builder()
+        .main_file(typst_content)
+        .with_file_system_resolver("./".to_owned())
+        .build();
 
     // Compile the document
-    let result = typst::compile(&world);
-    let document = result.output.map_err(|errors| {
-        let error_messages: Vec<String> = errors
-            .iter()
-            .map(|error| format!("{}", error.message))
-            .collect();
-        format!("Typst compilation failed: {}", error_messages.join("; "))
-    })?;
+    let result = template.compile();
+    let document = result
+        .output
+        .map_err(|error| format!("Typst compilation failed: {}", error))?;
 
     // Export to PDF
-    let pdf_data = pdf(&document, &PdfOptions::default())
+    let pdf_data = typst_pdf::pdf(&document, &typst_pdf::PdfOptions::default())
         .map_err(|e| format!("PDF export failed: {:?}", e))?;
 
     Ok(pdf_data)
 }
 
-#[cfg(all(test, feature = "ssr"))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
@@ -339,19 +191,19 @@ mod tests {
     #[test]
     fn test_generated_content_should_be_correct() {
         let images = vec![
-            ImageInfo {
+            RectoVersoImagePair {
                 recto_path: "recto/devils4.png".to_string(),
                 verso_path: "verso/devils4.png".to_string(),
             },
-            ImageInfo {
+            RectoVersoImagePair {
                 recto_path: "recto/uglylove.png".to_string(),
                 verso_path: "verso/uglylove.png".to_string(),
             },
-            ImageInfo {
+            RectoVersoImagePair {
                 recto_path: "recto/yoyo.png".to_string(),
                 verso_path: "verso/yoyo.png".to_string(),
             },
-            ImageInfo {
+            RectoVersoImagePair {
                 recto_path: "recto/dragon.png".to_string(),
                 verso_path: "verso/dragon.png".to_string(),
             },

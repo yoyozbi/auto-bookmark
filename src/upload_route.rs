@@ -1,11 +1,15 @@
+use std::{
+    iter::Map,
+    path::{Path, PathBuf},
+};
+
 #[cfg(feature = "ssr")]
-use crate::generation::generate_pdf_from_input_pdfs;
+use crate::generation::GenerationRequest;
 #[cfg(feature = "ssr")]
 use axum::{
-    extract::{Multipart, State},
+    extract::Multipart,
     http::StatusCode,
     http::{header, HeaderMap},
-    response::Json,
     routing::post,
     Router,
 };
@@ -14,25 +18,10 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
 use tokio::fs;
 
-#[derive(Serialize, Deserialize)]
-pub struct UploadResponse {
-    pub success: bool,
-    pub message: String,
-    pub uploaded_files: Vec<UploadedFile>,
-    pub failed_files: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct UploadedFile {
-    pub original_name: String,
-    pub file_path: String,
-    pub size: usize,
-}
-
 // Handler for multiple file upload
 #[cfg(feature = "ssr")]
 pub async fn upload_file(mut multipart: Multipart) -> Result<(HeaderMap, Vec<u8>), StatusCode> {
-    let mut uploaded_files = Vec::new();
+    let mut file_paths = Vec::new();
     let mut failed_files = Vec::new();
 
     // Create uploads directory if it doesn't exist
@@ -64,11 +53,7 @@ pub async fn upload_file(mut multipart: Multipart) -> Result<(HeaderMap, Vec<u8>
 
                 match fs::write(&file_path, &data).await {
                     Ok(_) => {
-                        uploaded_files.push(UploadedFile {
-                            original_name: file_name,
-                            file_path: file_path.clone(),
-                            size: data.len(),
-                        });
+                        file_paths.push(file_path.clone());
                     }
                     Err(_) => {
                         failed_files.push(file_name);
@@ -81,10 +66,9 @@ pub async fn upload_file(mut multipart: Multipart) -> Result<(HeaderMap, Vec<u8>
         }
     }
 
-    let success = !uploaded_files.is_empty();
-    let file_paths: Vec<String> = uploaded_files.iter().map(|f| f.file_path.clone()).collect();
+    let mut request = GenerationRequest::new(file_paths);
 
-    return match generate_pdf_from_input_pdfs(&file_paths) {
+    return match request.generate_pdf().await {
         Ok(data) => {
             let mut headers = HeaderMap::new();
             headers.insert(

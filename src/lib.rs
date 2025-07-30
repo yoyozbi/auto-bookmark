@@ -1,5 +1,8 @@
 pub mod app;
+
+#[cfg(feature = "ssr")]
 pub mod generation;
+
 pub mod pages;
 pub mod upload_route;
 
