@@ -1,4 +1,4 @@
-use itertools::{Either, Itertools};
+use itertools::Itertools;
 use std::fs;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -16,7 +16,6 @@ const IMAGE_EXTENSION: &str = "png";
 struct RectoVersoPair {
     recto_path: String,
     verso_path: String,
-    pair_index: usize,
 }
 
 #[derive(Debug)]
@@ -90,7 +89,7 @@ impl PdfImageExtractor {
             let recto_page = pair_idx * 2 + 1;
             let verso_page = pair_idx * 2 + 2;
 
-            let pair = self.extract_pair(pdf_path, recto_page, verso_page, pair_idx)?;
+            let pair = self.extract_pair(pdf_path, recto_page, verso_page)?;
             pairs.push(pair);
         }
 
@@ -102,7 +101,6 @@ impl PdfImageExtractor {
         pdf_path: P,
         recto_page: usize,
         verso_page: usize,
-        pair_index: usize,
     ) -> Result<RectoVersoPair, ExtractionError> {
         let pdf_path = pdf_path.as_ref();
         let pdf_stem = pdf_path
@@ -129,7 +127,6 @@ impl PdfImageExtractor {
         Ok(RectoVersoPair {
             recto_path: recto_path.to_string_lossy().to_string(),
             verso_path: verso_path.to_string_lossy().to_string(),
-            pair_index,
         })
     }
 

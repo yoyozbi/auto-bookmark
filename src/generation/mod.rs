@@ -1,7 +1,7 @@
 use extract_pdf_pages::split_pages_from_input_pdfs;
 use generate_pdf::generate_pdf;
 use itertools::Itertools;
-use std::{fmt::Error, path::Path};
+use std::path::Path;
 use uuid::Uuid;
 
 mod extract_pdf_pages;

@@ -1,8 +1,6 @@
 #[cfg(feature = "ssr")]
 use crate::generation::GenerationRequest;
 #[cfg(feature = "ssr")]
-use axum::extract::State;
-#[cfg(feature = "ssr")]
 use axum::{
     extract::Multipart,
     http::StatusCode,
