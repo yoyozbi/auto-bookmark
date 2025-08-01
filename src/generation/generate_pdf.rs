@@ -148,7 +148,9 @@ fn generate_typst_content(
     content
 }
 
-pub fn generate_pdf(images: &[RectoVersoImagePair]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn generate_pdf(
+    images: &[RectoVersoImagePair],
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
     let margins = PageMargins::default();
     let config = GridConfig::default();
     generate_pdf_with_config(images, &margins, &config)
@@ -158,7 +160,7 @@ pub fn generate_pdf_with_config(
     images: &[RectoVersoImagePair],
     margins: &PageMargins,
     config: &GridConfig,
-) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
     if images.is_empty() {
         return Err("No images provided for PDF generation".into());
     }
