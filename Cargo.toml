@@ -28,8 +28,9 @@ typst-as-lib = { version = "0.14.4", optional = true, features = [
     "typst-kit-fonts",
 ] }
 typst-pdf = { version = "0.13.1", optional = true }
-uuid = { version = "1.17.0", features = ["v4"], optional = true }
+uuid = { version = "1.17.0", features = ["v4", "serde"], optional = true }
 itertools = "0.14.0"
+cfg-if = "1.0.1"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -1,29 +1,38 @@
 use extract_pdf_pages::split_pages_from_input_pdfs;
 use generate_pdf::generate_pdf;
 use itertools::Itertools;
-use std::path::Path;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 mod extract_pdf_pages;
 mod generate_pdf;
 
-pub struct GenerationRequest<P1: AsRef<Path> + Sync + Sized + Clone + Send> {
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct GenerationRequest {
     pub id: Uuid,
-    pub input_files: Vec<P1>,
+    input_files: Vec<String>,
 }
 
-impl<P1: AsRef<Path> + Sync + Sized + Clone + Send> GenerationRequest<P1> {
-    pub fn new(input_files: Vec<P1>) -> GenerationRequest<P1> {
+impl Default for GenerationRequest {
+    fn default() -> Self {
         GenerationRequest {
             id: Uuid::new_v4(),
-            input_files,
+            input_files: Vec::new(),
         }
     }
+}
 
-    pub async fn generate_pdf(
-        &mut self,
-    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        println!("Generating pdfs");
+impl GenerationRequest {
+    pub fn add_file(&mut self, file: String) {
+        self.input_files.push(file);
+    }
+
+    pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        println!(
+            "Generating pdfs with {} input files",
+            self.input_files.len()
+        );
+
         let image_pairs = split_pages_from_input_pdfs(&self.input_files, self.id).await;
         let image_pairs = match image_pairs {
             Ok(pairs) => pairs,
@@ -49,14 +58,10 @@ impl<P1: AsRef<Path> + Sync + Sized + Clone + Send> GenerationRequest<P1> {
     }
 
     async fn delete_files(
-        &mut self,
+        &self,
         additional_file_paths: Option<Vec<String>>,
     ) -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
-        let mut all_files: Vec<String> = self
-            .input_files
-            .iter()
-            .map(|p| p.as_ref().to_string_lossy().to_string())
-            .collect();
+        let mut all_files: Vec<String> = self.input_files.clone();
 
         if let Some(mut files) = additional_file_paths {
             all_files.append(&mut files);

@@ -1,9 +1,25 @@
+use cfg_if::cfg_if;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
     components::{Route, Router, Routes},
     StaticSegment,
 };
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        use crate::generation::GenerationRequest;
+        use axum::extract::FromRef;
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+
+        #[cfg(feature = "ssr")]
+        #[derive(FromRef, Clone)]
+        pub struct AppState {
+            pub leptos_options: LeptosOptions,
+            pub requests: Arc<Mutex<Vec<GenerationRequest>>>,
+        }
+    }
+}
 
 use crate::pages::HomePage;
 

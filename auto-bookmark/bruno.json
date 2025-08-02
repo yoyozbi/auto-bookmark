@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "auto-bookmark",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
