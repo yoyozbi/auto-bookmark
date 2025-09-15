@@ -6,13 +6,12 @@ use auto_bookmark::{app::*, upload_route::file_upload_routes};
     use leptos::logging::log;
     use leptos::prelude::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
+    use auto_bookmark::fallback::file_and_error_handler;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
 #[tokio::main]
 async fn main() {
-
-
     let conf = get_configuration(None).unwrap();
     let addr = conf.leptos_options.site_addr;
     let app_state = AppState {
@@ -28,7 +27,7 @@ async fn main() {
             move || shell(leptos_options.clone())
         })
         .merge(file_upload_routes())
-        //.fallback(leptos_axum::file_and_error_handler(shell))
+        .fallback(file_and_error_handler)
         .with_state(app_state);
 
     // run our app with hyper

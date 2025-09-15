@@ -1,16 +1,36 @@
+#[cfg(feature = "ssr")]
 use extract_pdf_pages::split_pages_from_input_pdfs;
+
+#[cfg(feature = "ssr")]
 use generate_pdf::generate_pdf;
+
+#[cfg(feature = "ssr")]
 use itertools::Itertools;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg(feature = "ssr")]
 mod extract_pdf_pages;
+
+#[cfg(feature = "ssr")]
 mod generate_pdf;
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum GenerationStatus {
+    Pending,
+    Generating,
+    Success,
+    Failure(String),
+}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct GenerationRequest {
     pub id: Uuid,
-    input_files: Vec<String>,
+    pub input_files: Vec<String>,
+    status: GenerationStatus,
+    #[cfg(feature = "ssr")]
+    generated_data: Option<Vec<u8>>,
 }
 
 impl Default for GenerationRequest {
@@ -18,13 +38,37 @@ impl Default for GenerationRequest {
         GenerationRequest {
             id: Uuid::new_v4(),
             input_files: Vec::new(),
+            status: GenerationStatus::Pending,
+            #[cfg(feature = "ssr")]
+            generated_data: None,
         }
     }
 }
 
+#[cfg(feature = "ssr")]
 impl GenerationRequest {
     pub fn add_file(&mut self, file: String) {
         self.input_files.push(file);
+    }
+
+    pub fn status(&self) -> GenerationStatus {
+        self.status.clone()
+    }
+
+    pub fn set_status(&mut self, status: GenerationStatus) {
+        self.status = status;
+    }
+
+    pub fn get_generated_data(&self) -> Option<&Vec<u8>> {
+        self.generated_data.as_ref()
+    }
+
+    pub fn set_generated_data(&mut self, data: Vec<u8>) {
+        self.generated_data = Some(data);
+    }
+
+    pub fn file_count(&self) -> usize {
+        self.input_files.len()
     }
 
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {

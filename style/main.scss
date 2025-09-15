@@ -2,3 +2,286 @@ body {
     font-family: sans-serif;
     text-align: center;
 }
+
+.hidden {
+    display: none;
+}
+
+// File Upload Component Styles
+.file-upload-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.upload-section {
+    margin-bottom: 20px;
+}
+
+.button-group {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.upload-btn,
+.reset-btn,
+.cleanup-btn,
+.status-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.upload-btn {
+    background-color: #007bff;
+    color: white;
+}
+
+.upload-btn:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.upload-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.status-btn {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-btn:hover:not(:disabled) {
+    background-color: #138496;
+}
+
+.status-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.reset-btn {
+    background-color: #6c757d;
+    color: white;
+}
+
+.reset-btn:hover:not(:disabled) {
+    background-color: #5a6268;
+}
+
+.cleanup-btn {
+    background-color: #dc3545;
+    color: white;
+    margin-top: 10px;
+}
+
+.cleanup-btn:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.status-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+.status-text {
+    margin: 0 0 10px 0;
+    font-weight: bold;
+    color: #495057;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-indicator.pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.status-indicator.generating {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.status-indicator.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.status-indicator.failure {
+    background-color: #dc3545;
+    color: white;
+}
+
+.download-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #d4edda;
+    border-radius: 4px;
+    border-left: 4px solid #28a745;
+}
+
+.download-section h4 {
+    margin-top: 0;
+    color: #155724;
+}
+
+.download-link {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.download-link:hover {
+    background-color: #218838;
+    color: white;
+    text-decoration: none;
+}
+
+.progress-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #007bff;
+    animation: progress 2s infinite;
+}
+
+@keyframes progress {
+    0% {
+        width: 0%;
+    }
+    50% {
+        width: 70%;
+    }
+    100% {
+        width: 100%;
+    }
+}
+
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: inherit;
+    background-color: #fff;
+    transition: border-color 0.2s;
+}
+
+input[type="file"]:hover:not(:disabled) {
+    border-color: #007bff;
+}
+
+input[type="file"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+}
+
+// Responsive design
+// Spinner animation
+.spinner {
+    display: inline-block;
+    animation: pulse 1.5s linear infinite;
+    margin-left: 8px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+@keyframes pulse {
+    0%,
+    20% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.help-text {
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.checking-section {
+    margin: 20px 0;
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #17a2b8;
+}
+
+.spinner-large {
+    font-size: 24px;
+    animation: pulse 1.5s linear infinite;
+    margin-bottom: 10px;
+    display: block;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .file-upload-container {
+        padding: 15px;
+    }
+
+    .button-group {
+        flex-direction: column;
+    }
+
+    .upload-btn,
+    .reset-btn,
+    .cleanup-btn,
+    .status-btn {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}

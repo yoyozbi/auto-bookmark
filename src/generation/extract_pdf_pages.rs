@@ -148,7 +148,9 @@ impl PdfImageExtractor {
         let pdfium = Pdfium::new(
             Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
                 .or_else(|_| Pdfium::bind_to_system_library())
-                .or_else(|_| Pdfium::bind_to_library(std::env::var("PDFIUM_DEBUG_PATH").unwrap()))
+                .or_else(|_| {
+                    Pdfium::bind_to_library(std::env::var("PDFIUM_DEBUG_PATH").unwrap_or_default())
+                })
                 .map_err(|e| {
                     ExtractionError::ExtractionFailed(format!(
                         "Failed to bind to Pdfium library: {:?}",

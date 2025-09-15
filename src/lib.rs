@@ -3,8 +3,10 @@ pub mod app;
 pub mod pages;
 pub mod upload_route;
 
-#[cfg(feature = "ssr")]
+pub mod fallback;
+
 pub mod generation;
+pub mod utils;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
