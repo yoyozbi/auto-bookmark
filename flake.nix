@@ -38,7 +38,6 @@
                     [
                       cargo-leptos
                       sass
-                      pdfium-binaries
                     ];
 
                   dotenv.enable = true;
@@ -51,9 +50,9 @@
                   };
 
                   enterShell = ''
-                    export PATH="${pkgs.pdfium-binaries}/lib:$PATH"
-                    export PDFIUM_DYNAMIC_LIB_PATH="${pkgs.pdfium-binaries}/lib"
-                    export PDFIUM_DEBUG_PATH="${pkgs.pdfium-binaries}/lib/libpdfium.so"
+                    export PATH="./lib:$PATH"
+                    export PDFIUM_DYNAMIC_LIB_PATH="./lib"
+                    export PDFIUM_DEBUG_PATH="./lib/libpdfium.so"
                   '';
                 }
               ];

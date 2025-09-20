@@ -16,19 +16,19 @@ leptos_axum = { version = "0.8.3", optional = true }
 leptos_meta = { version = "0.8.3" }
 tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
-wasm-bindgen = { version = "=0.2.101", optional = true }
+wasm-bindgen = { version = "=0.2.100", optional = true }
 pdfium-render = { version = "0.8", features = ["image"], optional = true }
 web-sys = { version = "0.3.77", features = [
-    "FileList",
-    "File",
-    "HtmlInputElement",
-    "Blob",
-    "Url"
+  "FileList",
+  "File",
+  "HtmlInputElement",
+  "Blob",
+  "Url",
 ] }
-gloo-net = {version = "0.6.0", features = ["json"]}
-uuid = { version = "1.17.0", features = ["v4", "serde", "js"]}
+gloo-net = { version = "0.6.0", features = ["json"] }
+uuid = { version = "1.17.0", features = ["v4", "serde", "js"] }
 typst-as-lib = { version = "0.14.4", optional = true, features = [
-    "typst-kit-fonts",
+  "typst-kit-fonts",
 ] }
 
 typst-pdf = { version = "0.13.1", optional = true }
@@ -43,17 +43,17 @@ pretty_assertions = "1.4.1"
 [features]
 hydrate = ["leptos/hydrate", "dep:console_error_panic_hook", "dep:wasm-bindgen"]
 ssr = [
-    "dep:axum",
-    "dep:tokio",
-    "dep:leptos_axum",
-    "dep:pdfium-render",
-    "dep:typst-as-lib",
-    "dep:typst-pdf",
-    "dep:tower-http",
-    "dep:tower",
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptos_router/ssr",
+  "dep:axum",
+  "dep:tokio",
+  "dep:leptos_axum",
+  "dep:pdfium-render",
+  "dep:typst-as-lib",
+  "dep:typst-pdf",
+  "dep:tower-http",
+  "dep:tower",
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
 ]
 
 
