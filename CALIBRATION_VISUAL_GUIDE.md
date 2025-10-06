@@ -1,0 +1,233 @@
+# Calibration Page Visual Reference
+
+This document provides a visual reference for the printer calibration page.
+
+## Layout Overview
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  ┏━┓                                  ┏━┓  ┃  <- Top corners: 1cm from edge
+┃  ┗                                      ┗  ┃     L-shaped 2x2cm marks
+┃                                            ┃
+┃     ┌─────────────────────────────┐        ┃
+┃     │ CALIBRATION INSTRUCTIONS    │        ┃  <- Instructions box
+┃     │ 1. Print double-sided       │        ┃     (recto page only)
+┃     │ 2. Hold up to light        │        ┃
+┃     │ 3. Measure offsets         │        ┃
+┃     └─────────────────────────────┘        ┃
+┃                                            ┃
+┃                    │                       ┃
+┃             ───────┼───────                ┃  <- Center crosshair
+┃                    │                       ┃     4cm arms
+┃                                            ┃
+┃                 RECTO                      ┃  <- Page identifier
+┃               (watermark)                  ┃     Large, faint text
+┃                                            ┃
+┃  ┏                                      ┏  ┃
+┃  ┗━┛                                  ┗━┛  ┃  <- Bottom corners
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+     A4 Page: 21cm × 29.7cm
+```
+
+## Element Details
+
+### 1. Corner Alignment Marks
+```
+┏━━┓     Structure:
+┃  ┃     - 2cm × 2cm outer border
+┗        - Filled center square (5mm × 5mm)
+         - Two sides transparent (L-shape)
+         - Position: 1cm from page edges
+```
+
+### 2. Center Crosshair
+```
+         │
+         │ 2cm
+         │
+─────────┼─────────
+    2cm  │  2cm
+         │
+         │ 2cm
+         │
+
+Total: 4cm horizontal, 4cm vertical
+Line thickness: 2px (black)
+```
+
+### 3. Measurement Example
+
+When you hold the printed page up to light, you'll see both sides:
+
+```
+    RECTO crosshair          VERSO crosshair
+         │                        │
+         │                        │  ← 3mm offset (example)
+         │                        ↓
+─────────┼─────────          ─────────┼─────────
+         │                             │
+         │                             │ ← 2mm offset (example)
+         │                             ↓
+
+In this example:
+- Horizontal offset: +3mm (verso shifted right)
+- Vertical offset: +2mm (verso shifted down)
+
+Configuration:
+export CALIBRATION_OFFSET_HORIZONTAL=0.3
+export CALIBRATION_OFFSET_VERTICAL=0.2
+```
+
+## Color Scheme
+
+| Element | Color | Purpose |
+|---------|-------|---------|
+| Corner marks | Black (#000000) | Maximum visibility |
+| Crosshair lines | Black (#000000) | Precise alignment |
+| Instructions box | White bg (90% opacity) | Readable overlay |
+| Page identifier | Black (10% opacity) | Non-intrusive watermark |
+| Border | Black (2px solid) | Clear delineation |
+
+## Dimensions Reference
+
+```
+Page Size: A4 (210mm × 297mm = 21cm × 29.7cm)
+
+┌─────────────────────────┐
+│ 1cm margin              │
+│  ┏━┓   RECTO     ┏━┓   │
+│  ┗                 ┗    │
+│         (10.5cm, 14.85cm)
+│            ┼             │ <- Center point
+│                          │
+│  ┏                 ┏     │
+│  ┗━┛             ┗━┛    │
+│              1cm margin  │
+└─────────────────────────┘
+```
+
+## Printing Settings
+
+For best results:
+- **Paper**: A4 (210 × 297 mm)
+- **Orientation**: Portrait
+- **Margins**: None (full bleed)
+- **Double-sided**: Yes, flip on long edge
+- **Scale**: 100% (no scaling)
+- **Quality**: Normal or better
+
+## Measurement Tools
+
+Recommended:
+1. **Digital caliper** - Most accurate (±0.01mm)
+2. **Ruler with mm marks** - Good accuracy (±0.5mm)
+3. **Grid paper overlay** - Visual aid (±1mm)
+
+## Interpreting Offsets
+
+### Horizontal (Left/Right)
+
+```
+RECTO       VERSO         Meaning
+  │           │           Perfect alignment (0mm)
+  │          │            Verso shifted LEFT (-2mm)
+  │           │           Verso shifted RIGHT (+3mm)
+```
+
+### Vertical (Up/Down)
+
+```
+RECTO    VERSO       Meaning
+─────    ─────       Perfect alignment (0mm)
+─────     ─────      Verso shifted UP (-2mm)
+─────    ─────       Verso shifted DOWN (+3mm)
+```
+
+## Common Patterns
+
+### Pattern 1: Consistent Offset
+All alignment points show the same offset → Apply calibration
+
+### Pattern 2: Variable Offset
+Different offsets at different points → Printer may have mechanical issues
+
+### Pattern 3: Rotation
+One side slightly rotated → May need rotation compensation (not yet supported)
+
+### Pattern 4: Scaling
+Different offsets at corners vs center → May need scaling compensation (not yet supported)
+
+## Export Formats
+
+The calibration page can be exported as:
+1. **HTML** - View in browser, print directly
+2. **PDF** - Best for consistent printing
+3. **PNG/JPG** - For archival or reference
+
+## File Locations
+
+After generating:
+```
+project_root/
+├── calibration_page.html    (Generated by script)
+├── calibration_page.pdf     (Generated by wkhtmltopdf)
+└── scripts/
+    └── generate_calibration_page.sh
+```
+
+## Next Steps After Calibration
+
+1. **Record values**: Note your calibration values
+   ```
+   Printer: HP LaserJet Pro M404n
+   Paper: Standard A4 80gsm
+   Date: 2024-10-06
+   Horizontal: +0.3cm (3mm right)
+   Vertical: +0.2cm (2mm down)
+   ```
+
+2. **Set environment variables**:
+   ```bash
+   export CALIBRATION_OFFSET_HORIZONTAL=0.3
+   export CALIBRATION_OFFSET_VERTICAL=0.2
+   export USE_HTML_PDF=true
+   ```
+
+3. **Test with sample PDFs**: Generate a test bookmark before production
+
+4. **Re-calibrate periodically**: After maintenance or paper changes
+
+## Troubleshooting
+
+### Offsets seem wrong
+- Ensure you're measuring from the same reference point
+- Check printer settings haven't changed
+- Verify paper is loaded correctly
+- Try multiple test prints
+
+### Can't see alignment through paper
+- Use thinner paper
+- Use stronger light source
+- Try holding at different angles
+- Scan both sides and overlay digitally
+
+### Different offsets on different printers
+- This is normal - each printer needs calibration
+- Save profiles per printer
+- Label printers clearly
+
+## Advanced: Digital Verification
+
+For precise measurement, you can scan both sides and use image processing:
+
+```python
+# Example: Overlay and measure offset
+from PIL import Image
+import numpy as np
+
+recto = Image.open('calibration_recto.png')
+verso = Image.open('calibration_verso.png').transpose(Image.FLIP_LEFT_RIGHT)
+
+# Find crosshair centers and calculate offset
+# (Implementation details omitted)
+```

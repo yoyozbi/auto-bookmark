@@ -81,8 +81,8 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
 
 fn generate_html_content(
     images: &[RectoVersoImagePair],
-    margins: &PageMargins,
-    config: &GridConfig,
+    _margins: &PageMargins,
+    _config: &GridConfig,
 ) -> String {
     let mut pages = String::new();
 

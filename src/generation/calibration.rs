@@ -26,7 +26,7 @@
 /// - Instructions printed on the page
 /// - A unique pattern on recto and verso that overlaps when aligned
 ///
-use super::{PageMargins, GridConfig};
+use super::{PageMargins};
 
 const CALIBRATION_HTML: &str = r#"<!DOCTYPE html>
 <html>
