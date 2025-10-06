@@ -6,7 +6,7 @@ use uuid::Uuid;
 use pdfium_render::prelude::*;
 use tokio::task::JoinSet;
 
-use super::generate_pdf::RectoVersoImagePair;
+use super::RectoVersoImagePair;
 
 const OUTPUT_DIR: &str = "output";
 const DPI: u32 = 300;

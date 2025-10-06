@@ -1,5 +1,7 @@
 use typst_as_lib::TypstEngine;
 
+use super::RectoVersoImagePair;
+
 const PAGE_DEFINITION: &str = r#"#set page(margin: (
  top: {top}cm,
  bottom: {bottom}cm,
@@ -25,12 +27,6 @@ const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
 "#;
 const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}", width: {width}cm), reflow: true), colspan: 3),
 "#;
-
-#[derive(Clone, Debug)]
-pub(crate) struct RectoVersoImagePair {
-    pub recto_path: String,
-    pub verso_path: String,
-}
 
 #[derive(Clone, Debug)]
 pub struct PageMargins {

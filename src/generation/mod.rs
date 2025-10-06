@@ -5,16 +5,30 @@ use extract_pdf_pages::split_pages_from_input_pdfs;
 use generate_pdf::generate_pdf;
 
 #[cfg(feature = "ssr")]
+use generate_pdf_html::generate_pdf_html;
+
+#[cfg(feature = "ssr")]
 use itertools::Itertools;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+// Shared type used by both Typst and HTML generation
+#[cfg(feature = "ssr")]
+#[derive(Clone, Debug)]
+pub struct RectoVersoImagePair {
+    pub recto_path: String,
+    pub verso_path: String,
+}
 
 #[cfg(feature = "ssr")]
 mod extract_pdf_pages;
 
 #[cfg(feature = "ssr")]
 mod generate_pdf;
+
+#[cfg(feature = "ssr")]
+mod generate_pdf_html;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum GenerationStatus {
@@ -85,7 +99,19 @@ impl GenerationRequest {
                 return Err(format!("Failed to create image pairs: {}", _e).into());
             }
         };
-        let pdf = generate_pdf(&image_pairs);
+        
+        // Check if we should use HTML generation (env var USE_HTML_PDF=true)
+        let use_html = std::env::var("USE_HTML_PDF")
+            .unwrap_or_else(|_| "false".to_string())
+            .to_lowercase() == "true";
+        
+        let pdf = if use_html {
+            println!("Using HTML/CSS for PDF generation");
+            generate_pdf_html(&image_pairs)
+        } else {
+            println!("Using Typst for PDF generation");
+            generate_pdf(&image_pairs)
+        };
 
         let images = image_pairs
             .iter()
