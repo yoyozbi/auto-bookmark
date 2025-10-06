@@ -10,7 +10,7 @@ const PAGE_DEFINITION: &str = r#"#set page(margin: (
 "#;
 
 const GRID_DEFINITION: &str = r#"#grid(
-  columns: (1fr, 1fr, 1fr),
+  columns: (auto, auto, auto),
   rows: (auto, auto),
   column-gutter: {column-gutter}cm,
   row-gutter: {row-gutter}cm,
