@@ -30,6 +30,13 @@ mod generate_pdf;
 #[cfg(feature = "ssr")]
 mod generate_pdf_html;
 
+#[cfg(feature = "ssr")]
+pub mod calibration;
+
+// Re-export PageMargins and GridConfig for use in calibration
+#[cfg(feature = "ssr")]
+pub use generate_pdf::{PageMargins, GridConfig};
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum GenerationStatus {
     Pending,

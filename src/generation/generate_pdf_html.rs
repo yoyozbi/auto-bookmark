@@ -3,6 +3,8 @@ use std::io::Write;
 use std::process::Command;
 
 use super::RectoVersoImagePair;
+use super::{PageMargins, GridConfig};
+use super::calibration::CalibrationOffsets;
 
 const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
 <html>
@@ -77,44 +79,6 @@ const HTML_TEMPLATE: &str = r#"<!DOCTYPE html>
 </html>
 "#;
 
-#[derive(Clone, Debug)]
-pub struct PageMargins {
-    pub top: f64,
-    pub bottom: f64,
-    pub left: f64,
-    pub right: f64,
-}
-
-impl Default for PageMargins {
-    fn default() -> Self {
-        Self {
-            top: 0.0,
-            bottom: 0.0,
-            left: 2.0,
-            right: 2.0,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct GridConfig {
-    pub column_gutter: f64,
-    pub row_gutter: f64,
-    pub image_width: f64,
-    pub rotation_angle: f64,
-}
-
-impl Default for GridConfig {
-    fn default() -> Self {
-        Self {
-            column_gutter: 3.0,
-            row_gutter: 0.7,
-            image_width: 5.5,
-            rotation_angle: 75.0,
-        }
-    }
-}
-
 fn generate_html_content(
     images: &[RectoVersoImagePair],
     margins: &PageMargins,
@@ -188,6 +152,33 @@ pub fn generate_pdf_html(
 }
 
 pub fn generate_pdf_html_with_config(
+    images: &[RectoVersoImagePair],
+    margins: &PageMargins,
+    config: &GridConfig,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
+    // Check for calibration offsets from environment
+    let horizontal_offset = std::env::var("CALIBRATION_OFFSET_HORIZONTAL")
+        .ok()
+        .and_then(|s| s.parse::<f64>().ok())
+        .unwrap_or(0.0);
+    
+    let vertical_offset = std::env::var("CALIBRATION_OFFSET_VERTICAL")
+        .ok()
+        .and_then(|s| s.parse::<f64>().ok())
+        .unwrap_or(0.0);
+    
+    let calibration_offsets = CalibrationOffsets {
+        horizontal_cm: horizontal_offset,
+        vertical_cm: vertical_offset,
+    };
+    
+    // Apply calibration offsets to margins
+    let adjusted_margins = calibration_offsets.apply_to_margins(margins);
+    
+    generate_pdf_html_internal(images, &adjusted_margins, config)
+}
+
+fn generate_pdf_html_internal(
     images: &[RectoVersoImagePair],
     margins: &PageMargins,
     config: &GridConfig,
