@@ -156,20 +156,19 @@ pub fn generate_pdf_html_with_config(
     margins: &PageMargins,
     config: &GridConfig,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
-    // Check for calibration offsets from environment
-    let horizontal_offset = std::env::var("CALIBRATION_OFFSET_HORIZONTAL")
-        .ok()
-        .and_then(|s| s.parse::<f64>().ok())
-        .unwrap_or(0.0);
-    
-    let vertical_offset = std::env::var("CALIBRATION_OFFSET_VERTICAL")
-        .ok()
-        .and_then(|s| s.parse::<f64>().ok())
-        .unwrap_or(0.0);
-    
+    generate_pdf_html_with_calibration(images, margins, config, 0.0, 0.0)
+}
+
+pub fn generate_pdf_html_with_calibration(
+    images: &[RectoVersoImagePair],
+    margins: &PageMargins,
+    config: &GridConfig,
+    horizontal_offset_cm: f64,
+    vertical_offset_cm: f64,
+) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
     let calibration_offsets = CalibrationOffsets {
-        horizontal_cm: horizontal_offset,
-        vertical_cm: vertical_offset,
+        horizontal_cm: horizontal_offset_cm,
+        vertical_cm: vertical_offset_cm,
     };
     
     // Apply calibration offsets to margins

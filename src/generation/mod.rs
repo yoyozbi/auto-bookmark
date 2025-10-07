@@ -5,9 +5,6 @@ use extract_pdf_pages::split_pages_from_input_pdfs;
 use generate_pdf::generate_pdf;
 
 #[cfg(feature = "ssr")]
-use generate_pdf_html::generate_pdf_html;
-
-#[cfg(feature = "ssr")]
 use itertools::Itertools;
 
 use serde::{Deserialize, Serialize};
@@ -52,6 +49,8 @@ pub struct GenerationRequest {
     status: GenerationStatus,
     #[cfg(feature = "ssr")]
     generated_data: Option<Vec<u8>>,
+    pub calibration_horizontal_cm: f64,
+    pub calibration_vertical_cm: f64,
 }
 
 impl Default for GenerationRequest {
@@ -62,6 +61,8 @@ impl Default for GenerationRequest {
             status: GenerationStatus::Pending,
             #[cfg(feature = "ssr")]
             generated_data: None,
+            calibration_horizontal_cm: 0.0,
+            calibration_vertical_cm: 0.0,
         }
     }
 }
@@ -91,6 +92,11 @@ impl GenerationRequest {
     pub fn file_count(&self) -> usize {
         self.input_files.len()
     }
+    
+    pub fn set_calibration(&mut self, horizontal_cm: f64, vertical_cm: f64) {
+        self.calibration_horizontal_cm = horizontal_cm;
+        self.calibration_vertical_cm = vertical_cm;
+    }
 
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         println!(
@@ -113,8 +119,18 @@ impl GenerationRequest {
             .to_lowercase() == "true";
         
         let pdf = if use_html {
-            println!("Using HTML/CSS for PDF generation");
-            generate_pdf_html(&image_pairs)
+            println!("Using HTML/CSS for PDF generation with calibration: h={}, v={}", 
+                     self.calibration_horizontal_cm, self.calibration_vertical_cm);
+            use generate_pdf_html::generate_pdf_html_with_calibration;
+            let margins = PageMargins::default();
+            let config = GridConfig::default();
+            generate_pdf_html_with_calibration(
+                &image_pairs, 
+                &margins, 
+                &config,
+                self.calibration_horizontal_cm,
+                self.calibration_vertical_cm
+            )
         } else {
             println!("Using Typst for PDF generation");
             generate_pdf(&image_pairs)

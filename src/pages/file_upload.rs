@@ -20,6 +20,10 @@ pub fn FileUpload() -> impl IntoView {
     let (show_download, set_show_download) = signal(false);
     let (generation_status, set_generation_status) = signal::<Option<GenerationStatus>>(None);
     let (polling, set_polling) = signal(false);
+    
+    // Calibration offsets (in cm, default to 0.0)
+    let (horizontal_offset, set_horizontal_offset) = signal(0.0_f64);
+    let (vertical_offset, set_vertical_offset) = signal(0.0_f64);
 
     let file_input: NodeRef<Input> = NodeRef::new();
 
@@ -45,7 +49,9 @@ pub fn FileUpload() -> impl IntoView {
                     status_handler.set_error(&error);
                     return;
                 }
-                workflow.execute(files);
+                let h_offset = horizontal_offset.get();
+                let v_offset = vertical_offset.get();
+                workflow.execute_with_calibration(files, h_offset, v_offset);
             }
             Err(error) => {
                 status_handler.set_error(&error);
@@ -158,6 +164,45 @@ pub fn FileUpload() -> impl IntoView {
                     accept=".pdf"
                     disabled={move || uploading.get()}
                 />
+                
+                <div class="calibration-section">
+                    <h4>"Printer Calibration (Optional)"</h4>
+                    <div class="calibration-inputs">
+                        <div class="calibration-input-group">
+                            <label for="horizontal-offset">"Horizontal Offset (cm):"</label>
+                            <input
+                                id="horizontal-offset"
+                                type="number"
+                                step="0.1"
+                                value={move || horizontal_offset.get().to_string()}
+                                on:input=move |ev| {
+                                    if let Ok(val) = event_target_value(&ev).parse::<f64>() {
+                                        set_horizontal_offset.set(val);
+                                    }
+                                }
+                                disabled={move || uploading.get()}
+                            />
+                        </div>
+                        <div class="calibration-input-group">
+                            <label for="vertical-offset">"Vertical Offset (cm):"</label>
+                            <input
+                                id="vertical-offset"
+                                type="number"
+                                step="0.1"
+                                value={move || vertical_offset.get().to_string()}
+                                on:input=move |ev| {
+                                    if let Ok(val) = event_target_value(&ev).parse::<f64>() {
+                                        set_vertical_offset.set(val);
+                                    }
+                                }
+                                disabled={move || uploading.get()}
+                            />
+                        </div>
+                    </div>
+                    <small class="help-text">
+                        "Adjust these values if your printer misaligns double-sided prints. Use the calibration page to measure offsets."
+                    </small>
+                </div>
 
                 <div class="button-group">
                     <button

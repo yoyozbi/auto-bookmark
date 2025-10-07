@@ -11,13 +11,19 @@ cfg_if! {
             extract::{Multipart, State, Path},
             http::StatusCode,
             http::{header, HeaderMap},
-            routing::{post, get, delete},
+            routing::{post, get, delete, put},
             Router,
         };
 
         use tokio::fs;
 
         use axum::response::IntoResponse;
+        
+        #[derive(serde::Deserialize)]
+        pub struct CalibrationParams {
+            pub horizontal_cm: f64,
+            pub vertical_cm: f64,
+        }
 
         #[axum::debug_handler]
         pub async fn create_upload_request(State(app_state): State<AppState>) -> impl IntoResponse {
@@ -163,6 +169,25 @@ cfg_if! {
 
             Ok(StatusCode::ACCEPTED)
         }
+        
+        pub async fn set_calibration(
+            Path(request_id): Path<Uuid>,
+            State(app_state): State<AppState>,
+            Json(params): Json<CalibrationParams>,
+        ) -> impl IntoResponse {
+            let mut requests = app_state.requests.lock().await;
+            let request = requests.iter_mut().find(|f| f.id == request_id);
+
+            match request {
+                Some(req) => {
+                    req.set_calibration(params.horizontal_cm, params.vertical_cm);
+                    println!("Set calibration for request {}: h={}, v={}", 
+                             request_id, params.horizontal_cm, params.vertical_cm);
+                    Ok(StatusCode::OK)
+                },
+                None => Err(StatusCode::NOT_FOUND),
+            }
+        }
 
         pub async fn get_status(
             Path(request_id): Path<Uuid>,
@@ -235,6 +260,7 @@ cfg_if! {
             Router::new()
                 .route("/api/upload", post(create_upload_request))
                 .route("/api/upload/{request_id}/file", post(upload_file))
+                .route("/api/upload/{request_id}/calibration", put(set_calibration))
                 .route("/api/upload/{request_id}/generate", post(generate_pdf))
                 .route("/api/upload/{request_id}/status", get(get_status))
                 .route("/api/upload/{request_id}/download", get(get_file))

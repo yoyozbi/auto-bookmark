@@ -24,6 +24,11 @@ impl UploadWorkflow {
 
     /// Executes the complete upload and generation workflow
     pub fn execute(&self, files: FileList) {
+        self.execute_with_calibration(files, 0.0, 0.0);
+    }
+    
+    /// Executes the complete upload and generation workflow with calibration
+    pub fn execute_with_calibration(&self, files: FileList, horizontal_cm: f64, vertical_cm: f64) {
         let status_handler = self.status_handler.clone();
         let set_current_request_id = self.set_current_request_id;
 
@@ -56,6 +61,15 @@ impl UploadWorkflow {
                         status_handler.set_error(&error);
                         return;
                     }
+                }
+            }
+            
+            // Step 2.5: Set calibration offsets if non-zero
+            if horizontal_cm != 0.0 || vertical_cm != 0.0 {
+                status_handler.set_info("Setting calibration...");
+                if let Err(error) = ApiClient::set_calibration(request_id, horizontal_cm, vertical_cm).await {
+                    status_handler.set_error(&error);
+                    return;
                 }
             }
 

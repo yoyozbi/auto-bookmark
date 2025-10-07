@@ -69,6 +69,38 @@ impl ApiClient {
             _ => Err("Failed to start PDF generation".to_string()),
         }
     }
+    
+    /// Sets calibration offsets for a request
+    pub async fn set_calibration(request_id: Uuid, horizontal_cm: f64, vertical_cm: f64) -> Result<(), String> {
+        #[derive(serde::Serialize)]
+        struct CalibrationParams {
+            horizontal_cm: f64,
+            vertical_cm: f64,
+        }
+        
+        let params = CalibrationParams {
+            horizontal_cm,
+            vertical_cm,
+        };
+        
+        let body = serde_json::to_string(&params)
+            .map_err(|_| "Failed to serialize calibration params".to_string())?;
+        
+        let calibration_req = Request::put(&format!("/api/upload/{}/calibration", request_id))
+            .header("Content-Type", "application/json")
+            .body(body)
+            .map_err(|_| "Failed to build calibration request".to_string())?
+            .send()
+            .await;
+
+        match calibration_req {
+            Ok(response) if response.ok() => {
+                console_log(&format!("Set calibration: h={}, v={}", horizontal_cm, vertical_cm));
+                Ok(())
+            }
+            _ => Err("Failed to set calibration".to_string()),
+        }
+    }
 
     /// Checks the status of a generation request
     pub async fn check_status(request_id: Uuid) -> Result<GenerationStatus, String> {
