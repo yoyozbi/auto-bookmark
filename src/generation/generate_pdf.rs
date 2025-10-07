@@ -12,7 +12,7 @@ const PAGE_DEFINITION: &str = r#"#set page(margin: (
 "#;
 
 const GRID_DEFINITION: &str = r#"#grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: {column-gutter}cm,
   row-gutter: {row-gutter}cm,
@@ -214,7 +214,7 @@ mod tests {
 ))
 
 #grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: 3cm,
   row-gutter: 0.7cm,
@@ -228,7 +228,7 @@ grid.cell(rotate(75deg, image("recto/dragon.png", width: 5.5cm), reflow: true), 
 
 )
 #grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: 3cm,
   row-gutter: 0.7cm,

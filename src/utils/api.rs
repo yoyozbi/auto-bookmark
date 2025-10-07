@@ -9,16 +9,30 @@ use crate::generation::{GenerationRequest, GenerationStatus};
 pub struct ApiClient;
 
 impl ApiClient {
-    /// Creates a new upload request
-    pub async fn create_upload_request() -> Result<Uuid, String> {
+    /// Creates a new upload request with calibration parameters
+    pub async fn create_upload_request(horizontal_cm: f64, vertical_cm: f64) -> Result<Uuid, String> {
         console_log("Creating upload request...");
 
-        let req = Request::post("/api/upload").body(FormData::new().unwrap());
+        #[derive(serde::Serialize)]
+        struct CreateUploadRequest {
+            calibration_horizontal_cm: f64,
+            calibration_vertical_cm: f64,
+        }
 
-        let req = match req {
-            Ok(request) => request.send().await,
-            Err(_) => return Err("Failed to build request".to_string()),
+        let params = CreateUploadRequest {
+            calibration_horizontal_cm: horizontal_cm,
+            calibration_vertical_cm: vertical_cm,
         };
+
+        let body = serde_json::to_string(&params)
+            .map_err(|_| "Failed to serialize request params".to_string())?;
+
+        let req = Request::post("/api/upload")
+            .header("Content-Type", "application/json")
+            .body(body)
+            .map_err(|_| "Failed to build request".to_string())?
+            .send()
+            .await;
 
         match req {
             Ok(response) if response.ok() => match response.json::<GenerationRequest>().await {
@@ -67,38 +81,6 @@ impl ApiClient {
                 Ok(())
             }
             _ => Err("Failed to start PDF generation".to_string()),
-        }
-    }
-    
-    /// Sets calibration offsets for a request
-    pub async fn set_calibration(request_id: Uuid, horizontal_cm: f64, vertical_cm: f64) -> Result<(), String> {
-        #[derive(serde::Serialize)]
-        struct CalibrationParams {
-            horizontal_cm: f64,
-            vertical_cm: f64,
-        }
-        
-        let params = CalibrationParams {
-            horizontal_cm,
-            vertical_cm,
-        };
-        
-        let body = serde_json::to_string(&params)
-            .map_err(|_| "Failed to serialize calibration params".to_string())?;
-        
-        let calibration_req = Request::put(&format!("/api/upload/{}/calibration", request_id))
-            .header("Content-Type", "application/json")
-            .body(body)
-            .map_err(|_| "Failed to build calibration request".to_string())?
-            .send()
-            .await;
-
-        match calibration_req {
-            Ok(response) if response.ok() => {
-                console_log(&format!("Set calibration: h={}, v={}", horizontal_cm, vertical_cm));
-                Ok(())
-            }
-            _ => Err("Failed to set calibration".to_string()),
         }
     }
 

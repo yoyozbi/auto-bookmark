@@ -39,8 +39,8 @@ impl UploadWorkflow {
             status_handler.set_generation_status.set(None);
             status_handler.set_info("Starting upload...");
 
-            // Step 1: Create upload request
-            let request_id = match ApiClient::create_upload_request().await {
+            // Step 1: Create upload request with calibration
+            let request_id = match ApiClient::create_upload_request(horizontal_cm, vertical_cm).await {
                 Ok(id) => {
                     set_current_request_id.set(Some(id));
                     id
@@ -61,15 +61,6 @@ impl UploadWorkflow {
                         status_handler.set_error(&error);
                         return;
                     }
-                }
-            }
-            
-            // Step 2.5: Set calibration offsets if non-zero
-            if horizontal_cm != 0.0 || vertical_cm != 0.0 {
-                status_handler.set_info("Setting calibration...");
-                if let Err(error) = ApiClient::set_calibration(request_id, horizontal_cm, vertical_cm).await {
-                    status_handler.set_error(&error);
-                    return;
                 }
             }
 
