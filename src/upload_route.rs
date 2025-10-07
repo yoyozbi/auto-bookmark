@@ -13,11 +13,13 @@ cfg_if! {
             http::{header, HeaderMap},
             routing::{post, get, delete},
             Router,
+            response::Html,
         };
 
         use tokio::fs;
 
         use axum::response::IntoResponse;
+        use crate::generation::calibration::generate_calibration_html;
         
         #[derive(serde::Deserialize, serde::Serialize)]
         pub struct CreateUploadRequest {
@@ -243,6 +245,11 @@ cfg_if! {
             }
         }
 
+        pub async fn get_calibration_page() -> impl IntoResponse {
+            let html = generate_calibration_html();
+            Html(html)
+        }
+
         // Add this route to your Axum router
         pub fn file_upload_routes() -> Router<AppState> {
             Router::new()
@@ -252,6 +259,7 @@ cfg_if! {
                 .route("/api/upload/{request_id}/status", get(get_status))
                 .route("/api/upload/{request_id}/download", get(get_file))
                 .route("/api/upload/{request_id}", delete(cleanup_request))
+                .route("/calibration", get(get_calibration_page))
         }
     }
 }

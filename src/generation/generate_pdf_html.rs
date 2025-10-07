@@ -186,6 +186,10 @@ fn generate_pdf_html_internal(
         return Err("No images provided for PDF generation".into());
     }
 
+    // Validate margins and grid configuration
+    use super::generate_pdf::validate_margins_and_grid;
+    validate_margins_and_grid(margins, config)?;
+
     let content = generate_html_content(images, margins, config);
     
     let html = HTML_TEMPLATE
