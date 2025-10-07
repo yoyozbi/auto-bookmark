@@ -113,12 +113,8 @@ impl GenerationRequest {
             }
         };
         
-        // Check if we should use HTML generation (env var USE_HTML_PDF=true)
-        let use_html = std::env::var("USE_HTML_PDF")
-            .unwrap_or_else(|_| "false".to_string())
-            .to_lowercase() == "true";
-        
-        let pdf = if use_html {
+        // Use HTML/CSS generation if html-pdf feature is enabled, otherwise use Typst
+        let pdf = if cfg!(feature = "html-pdf") {
             println!("Using HTML/CSS for PDF generation with calibration: h={}, v={}", 
                      self.calibration_horizontal_cm, self.calibration_vertical_cm);
             use generate_pdf_html::generate_pdf_html_with_calibration;

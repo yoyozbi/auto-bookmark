@@ -202,11 +202,13 @@ Images are saved with names like:
 Make sure to compile with the `ssr` feature for full functionality:
 
 ```bash
-# Build with PDF processing support
+# Build with PDF processing support (Typst-based, default)
 cargo build --features ssr
-
-# Run with PDF processing support
 cargo run --features ssr
+
+# Build with HTML/CSS PDF generation
+cargo build --features ssr,html-pdf
+cargo run --features ssr,html-pdf
 
 # Without ssr feature, uses fallback implementations
 cargo run
@@ -214,15 +216,19 @@ cargo run
 
 ---
 
-## HTML/CSS PDF Generation (New Feature)
+## HTML/CSS PDF Generation (Feature Flag)
 
 ### Using HTML/CSS Instead of Typst
 
-```bash
-# Set environment variable to use HTML/CSS generation
-export USE_HTML_PDF=true
+The PDF generation method is selected at compile time using Rust feature flags:
 
-# Run the application
+```bash
+# Use HTML/CSS generation (requires wkhtmltopdf installed)
+cargo build --features ssr,html-pdf
+cargo run --features ssr,html-pdf
+
+# Use default Typst generation
+cargo build --features ssr
 cargo run --features ssr
 ```
 
@@ -230,12 +236,17 @@ cargo run --features ssr
 
 #### Step 1: Generate Calibration Page
 
-```bash
-# Using the helper script
-./scripts/generate_calibration_page.sh
+Visit the `/calibration` endpoint in your browser after starting the application:
 
-# This creates calibration_page.html and calibration_page.pdf (if wkhtmltopdf is available)
+```bash
+# Start the application
+cargo run --features ssr,html-pdf
+
+# Then visit in your browser:
+# http://localhost:3000/calibration
 ```
+
+Print the calibration page directly from your browser.
 
 #### Step 2: Print and Measure
 
@@ -246,16 +257,17 @@ cargo run --features ssr
 
 #### Step 3: Apply Calibration
 
-Convert measurements to centimeters and set environment variables:
+**Recommended**: Use the web UI to enter calibration values (in cm) when generating PDFs.
+
+**Alternative**: For advanced use cases, environment variables can be set:
 
 ```bash
 # Example: Verso is 3mm to the right and 2mm down
 export CALIBRATION_OFFSET_HORIZONTAL=0.3
 export CALIBRATION_OFFSET_VERTICAL=0.2
-export USE_HTML_PDF=true
 
-# Run the application
-cargo run --features ssr
+# Run with HTML/CSS generation
+cargo run --features ssr,html-pdf
 ```
 
 ### Code Examples with HTML Generation
@@ -305,15 +317,11 @@ fn create_calibration_page() -> Result<(), Box<dyn std::error::Error>> {
 ### Docker Usage with Calibration
 
 ```bash
-# Build Docker image
-docker build -t auto-bookmark .
+# Build Docker image with HTML/CSS generation
+docker build --build-arg CARGO_FEATURES="ssr,html-pdf" -t auto-bookmark .
 
-# Run with calibration
-docker run -p 3000:3000 \
-  -e USE_HTML_PDF=true \
-  -e CALIBRATION_OFFSET_HORIZONTAL=0.3 \
-  -e CALIBRATION_OFFSET_VERTICAL=0.2 \
-  auto-bookmark
+# Run (calibration set via web UI)
+docker run -p 3000:3000 auto-bookmark
 ```
 
 ### Troubleshooting HTML Generation
@@ -334,12 +342,14 @@ which wkhtmltopdf
 #### Comparing Typst vs HTML Output
 
 ```bash
-# Generate with Typst
-export USE_HTML_PDF=false
+# Build with Typst (default)
+cargo build --features ssr
+cargo run --features ssr
 # Process your PDFs, save as typst_output.pdf
 
-# Generate with HTML
-export USE_HTML_PDF=true
+# Rebuild with HTML/CSS
+cargo build --features ssr,html-pdf
+cargo run --features ssr,html-pdf
 # Process same PDFs, save as html_output.pdf
 
 # Compare outputs visually or with tools
@@ -352,20 +362,19 @@ diff <(pdfinfo typst_output.pdf) <(pdfinfo html_output.pdf)
 #!/bin/bash
 # Complete print shop workflow
 
-# 1. Initial setup
-export USE_HTML_PDF=true
+# 1. Build with HTML/CSS generation
+cargo build --release --features ssr,html-pdf
 
-# 2. One-time calibration per printer
-./scripts/generate_calibration_page.sh printer1_calibration.html
-# Print, measure, then set:
-export CALIBRATION_OFFSET_HORIZONTAL=0.25
-export CALIBRATION_OFFSET_VERTICAL=0.15
-
-# 3. Start service
-cargo run --release --features ssr &
+# 2. Start service
+cargo run --release --features ssr,html-pdf &
 SERVER_PID=$!
 
+# 3. One-time calibration per printer
+# Visit http://localhost:3000/calibration
+# Print, measure offsets
+
 # 4. Process customer PDFs via web interface
+# Enter calibration values in the UI for each print job
 
 # 5. Cleanup
 kill $SERVER_PID

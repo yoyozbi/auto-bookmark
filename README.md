@@ -29,14 +29,28 @@ Alternative rendering method using HTML/CSS, converted to PDF via wkhtmltopdf. T
 
 ## Usage
 
+### Building
+
+#### Default Build (Typst-based PDF generation)
+```bash
+cargo build --features ssr
+cargo run --features ssr
+```
+
+#### HTML/CSS-based PDF generation
+```bash
+cargo build --features ssr,html-pdf
+cargo run --features ssr,html-pdf
+```
+
 ### Environment Variables
 
-#### PDF Generation Method
-- `USE_HTML_PDF`: Set to `true` to use HTML/CSS generation instead of Typst (default: `false`)
-
-#### Printer Calibration (HTML/CSS mode only)
+#### Printer Calibration (UI-based configuration recommended)
+Calibration offsets can be set directly in the web UI. For advanced use cases, environment variables are also available:
 - `CALIBRATION_OFFSET_HORIZONTAL`: Horizontal offset in cm to compensate for printer misalignment (default: `0.0`)
 - `CALIBRATION_OFFSET_VERTICAL`: Vertical offset in cm to compensate for printer misalignment (default: `0.0`)
+
+**Note**: It's recommended to use the web UI for calibration instead of environment variables.
 
 #### Legacy Flask Variables (from previous Python version)
 - `ADMIN_PASSWORD`: The password to access the server (the username will be admin) you need to use `generate_password_hash` from `werkzeug.security` to generate the hash.
@@ -47,12 +61,16 @@ Alternative rendering method using HTML/CSS, converted to PDF via wkhtmltopdf. T
 
 ### Running with Docker
 
+For HTML/CSS generation, build with the feature flag:
 ```bash
-$ docker run -p 3000:3000 \
-  -e USE_HTML_PDF=true \
-  -e CALIBRATION_OFFSET_HORIZONTAL=0.2 \
-  -e CALIBRATION_OFFSET_VERTICAL=0.1 \
-  -d --name auto-bookmark auto-bookmark
+$ docker build --build-arg CARGO_FEATURES="ssr,html-pdf" -t auto-bookmark .
+$ docker run -p 3000:3000 -d --name auto-bookmark auto-bookmark
+```
+
+For default Typst generation:
+```bash
+$ docker build --build-arg CARGO_FEATURES="ssr" -t auto-bookmark .
+$ docker run -p 3000:3000 -d --name auto-bookmark auto-bookmark
 ```
 
 ### Printer Calibration

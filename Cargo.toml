@@ -56,6 +56,8 @@ ssr = [
   "leptos_meta/ssr",
   "leptos_router/ssr",
 ]
+# Use HTML/CSS for PDF generation instead of Typst
+html-pdf = []
 
 
 # Defines a size-optimized profile for the WASM bundle in release mode
