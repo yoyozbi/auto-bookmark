@@ -29,8 +29,22 @@ impl UploadWorkflow {
 
     /// Executes the complete upload and generation workflow with offset parameters
     pub fn execute_with_offsets(&self, files: FileList, top_offset: f64, left_offset: f64) {
+        self.execute_with_offsets_and_polling(files, top_offset, left_offset, |_| {});
+    }
+
+    /// Executes the complete upload and generation workflow with offset parameters and polling callback
+    pub fn execute_with_offsets_and_polling<F>(
+        &self,
+        files: FileList,
+        top_offset: f64,
+        left_offset: f64,
+        start_polling: F,
+    ) where
+        F: Fn(Uuid) + Clone + 'static,
+    {
         let status_handler = self.status_handler.clone();
         let set_current_request_id = self.set_current_request_id;
+        let start_polling = start_polling; // Explicitly capture for move
 
         spawn_local(async move {
             // Initialize workflow
@@ -81,6 +95,9 @@ impl UploadWorkflow {
                         .set_generation_status
                         .set(Some(crate::generation::GenerationStatus::Pending));
                     status_handler.set_uploading.set(false);
+
+                    // Start auto-polling
+                    start_polling(request_id);
                 }
                 Err(error) => {
                     status_handler.set_error(&error);
