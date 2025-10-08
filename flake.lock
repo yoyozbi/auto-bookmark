@@ -49,6 +49,11 @@
         "owner": "cachix",
         "repo": "devenv",
         "rev": "391197c9c98484a94b1b4a68b5f37e4f0f6d5128",
+        "lastModified": 1752809878,
+        "narHash": "sha256-547tW86UUMTnQGJv9bb71nAWmw9Gt5IqGMoeodTE4x0=",
+        "owner": "cachix",
+        "repo": "devenv",
+        "rev": "5ff577e51ca097d67c9ed44a37c836ddc729f8ff",
         "type": "github"
       },
       "original": {
