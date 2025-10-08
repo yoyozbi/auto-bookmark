@@ -93,7 +93,7 @@ jobs:
         if: success() || failure()
         with:
           name: Rust Tests
-          path: junit.xml
+          path: target/nextest/ci/junit.xml
           reporter: java-junit
           fail-on-error: false
 
