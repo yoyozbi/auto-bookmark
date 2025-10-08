@@ -42,20 +42,15 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Build (default features)
-        run: cargo build --verbose
-
-      - name: Build (SSR features)
+      - name: Build
         run: cargo build --verbose --features ssr
 
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --locked
 
-      - name: Run tests (default features)
+      - name: Run tests
         run: |
-          echo "::group::Running tests with default features"
           cargo nextest run --verbose --features ssr --profile ci
-          echo "::endgroup::"
 
       - name: Generate test summary
         if: always()
