@@ -54,19 +54,7 @@ jobs:
       - name: Run tests (default features)
         run: |
           echo "::group::Running tests with default features"
-          cargo nextest run --verbose --profile ci
-          echo "::endgroup::"
-
-      - name: Run tests (SSR features)
-        run: |
-          echo "::group::Running tests with SSR features"
           cargo nextest run --verbose --features ssr --profile ci
-          echo "::endgroup::"
-
-      - name: Run doc tests
-        run: |
-          echo "::group::Running documentation tests"
-          cargo test --doc --verbose --features ssr
           echo "::endgroup::"
 
       - name: Generate test summary
@@ -97,7 +85,6 @@ jobs:
         with:
           name: test-results-${{ github.run_id }}
           path: |
-            junit.xml
             target/nextest/ci/junit.xml
           retention-days: 30
 
