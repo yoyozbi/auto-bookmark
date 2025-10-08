@@ -11,9 +11,25 @@ pub struct ApiClient;
 impl ApiClient {
     /// Creates a new upload request
     pub async fn create_upload_request() -> Result<Uuid, String> {
+        Self::create_upload_request_with_offsets(0.0, 0.0).await
+    }
+
+    /// Creates a new upload request with offset parameters
+    pub async fn create_upload_request_with_offsets(
+        top_offset: f64,
+        left_offset: f64,
+    ) -> Result<Uuid, String> {
         console_log("Creating upload request...");
 
-        let req = Request::post("/api/upload").body(FormData::new().unwrap());
+        let form_data = FormData::new().unwrap();
+        form_data
+            .append_with_str("top_offset", &top_offset.to_string())
+            .unwrap();
+        form_data
+            .append_with_str("left_offset", &left_offset.to_string())
+            .unwrap();
+
+        let req = Request::post("/api/upload").body(form_data);
 
         let req = match req {
             Ok(request) => request.send().await,

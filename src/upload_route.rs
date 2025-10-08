@@ -20,12 +20,36 @@ cfg_if! {
         use axum::response::IntoResponse;
 
         #[axum::debug_handler]
-        pub async fn create_upload_request(State(app_state): State<AppState>) -> impl IntoResponse {
+        pub async fn create_upload_request(
+            State(app_state): State<AppState>,
+            mut multipart: Multipart,
+        ) -> Result<Json<GenerationRequest>, StatusCode> {
             let mut requests = app_state.requests.lock().await;
-            let request = GenerationRequest::default();
+            let mut request = GenerationRequest::default();
+
+            // Parse offset parameters from form data
+            while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+                let name = field.name().unwrap_or("").to_string();
+                let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+
+                match name.as_str() {
+                    "top_offset" => {
+                        if let Ok(offset) = value.parse::<f64>() {
+                            request.top_offset = offset;
+                        }
+                    }
+                    "left_offset" => {
+                        if let Ok(offset) = value.parse::<f64>() {
+                            request.left_offset = offset;
+                        }
+                    }
+                    _ => {} // Ignore unknown fields
+                }
+            }
+
             println!("Create upload request: {:#?}", request);
             requests.push(request.clone());
-            Json(request)
+            Ok(Json(request))
         }
 
         // Handler for multiple file upload
@@ -129,12 +153,14 @@ cfg_if! {
                 request.unwrap().set_status(GenerationStatus::Generating);
             }
 
-            let app_state_clone = app_state.clone();
             tokio::spawn(async move {
                 println!("Starting PDF generation for request: {}", request_id);
                 let result = {
-                    let requests = app_state_clone.requests.lock().await;
-                    let request = requests.iter().find(|f| f.id == request_id);
+                    let request = {
+                        let requests = app_state.requests.lock().await;
+                        requests.iter().find(|f| f.id == request_id).cloned()
+                    };
+
                     if let Some(req) = request {
                         req.generate_pdf().await
                     } else {
@@ -143,7 +169,7 @@ cfg_if! {
                     }
                 };
 
-                let mut requests = app_state_clone.requests.lock().await;
+                let mut requests = app_state.requests.lock().await;
                 match result {
                     Ok(data) => {
                         println!("PDF generation successful for request: {}, data size: {} bytes", request_id, data.len());

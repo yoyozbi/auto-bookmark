@@ -24,6 +24,11 @@ impl UploadWorkflow {
 
     /// Executes the complete upload and generation workflow
     pub fn execute(&self, files: FileList) {
+        self.execute_with_offsets(files, 0.0, 0.0);
+    }
+
+    /// Executes the complete upload and generation workflow with offset parameters
+    pub fn execute_with_offsets(&self, files: FileList, top_offset: f64, left_offset: f64) {
         let status_handler = self.status_handler.clone();
         let set_current_request_id = self.set_current_request_id;
 
@@ -35,7 +40,12 @@ impl UploadWorkflow {
             status_handler.set_info("Starting upload...");
 
             // Step 1: Create upload request
-            let request_id = match ApiClient::create_upload_request().await {
+            let request_id = match ApiClient::create_upload_request_with_offsets(
+                top_offset,
+                left_offset,
+            )
+            .await
+            {
                 Ok(id) => {
                     set_current_request_id.set(Some(id));
                     id

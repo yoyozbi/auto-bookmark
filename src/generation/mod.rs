@@ -16,6 +16,9 @@ mod extract_pdf_pages;
 #[cfg(feature = "ssr")]
 mod generate_pdf;
 
+#[cfg(feature = "ssr")]
+pub mod validate_margins;
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum GenerationStatus {
     Pending,
@@ -28,9 +31,17 @@ pub enum GenerationStatus {
 pub struct GenerationRequest {
     pub id: Uuid,
     pub input_files: Vec<String>,
+    pub top_offset: f64,
+    pub left_offset: f64,
     status: GenerationStatus,
     #[cfg(feature = "ssr")]
     generated_data: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct RectoVersoImagePair {
+    pub recto_path: String,
+    pub verso_path: String,
 }
 
 impl Default for GenerationRequest {
@@ -38,6 +49,8 @@ impl Default for GenerationRequest {
         GenerationRequest {
             id: Uuid::new_v4(),
             input_files: Vec::new(),
+            top_offset: 0.0,
+            left_offset: 0.0,
             status: GenerationStatus::Pending,
             #[cfg(feature = "ssr")]
             generated_data: None,
@@ -89,8 +102,7 @@ impl GenerationRequest {
 
         let images = image_pairs
             .iter()
-            .map(|f| vec![f.recto_path.clone(), f.verso_path.clone()])
-            .flatten()
+            .flat_map(|f| vec![f.recto_path.clone(), f.verso_path.clone()])
             .collect_vec();
 
         self.delete_files(Some(images)).await?;

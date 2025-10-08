@@ -1,5 +1,7 @@
 use typst_as_lib::TypstEngine;
 
+use crate::generation::RectoVersoImagePair;
+
 const PAGE_DEFINITION: &str = r#"#set page(margin: (
  top: {top}cm,
  bottom: {bottom}cm,
@@ -25,12 +27,6 @@ const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
 "#;
 const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}", width: {width}cm), reflow: true), colspan: 3),
 "#;
-
-#[derive(Clone, Debug)]
-pub(crate) struct RectoVersoImagePair {
-    pub recto_path: String,
-    pub verso_path: String,
-}
 
 #[derive(Clone, Debug)]
 pub struct PageMargins {
@@ -90,7 +86,7 @@ fn generate_typst_content(
     }
 
     // Chunk images into groups of 4 (3 normal + 1 rotated)
-    for (_, chunk) in images.chunks(4).enumerate() {
+    for chunk in images.chunks(4) {
         // RECTO
         let mut recto_cells = String::new();
         // First row: up to 3 images
@@ -218,7 +214,7 @@ mod tests {
 ))
 
 #grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: 3cm,
   row-gutter: 0.7cm,
@@ -232,7 +228,7 @@ grid.cell(rotate(75deg, image("recto/dragon.png", width: 5.5cm), reflow: true), 
 
 )
 #grid(
-  columns: (auto, auto, auto),
+  columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: 3cm,
   row-gutter: 0.7cm,

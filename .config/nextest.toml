@@ -1,0 +1,24 @@
+[profile.default]
+# Default profile for local development
+retries = 0
+failure-output = "immediate"
+success-output = "never"
+status-level = "pass"
+
+[profile.ci]
+# Profile optimized for CI environments
+retries = 2
+failure-output = "immediate"
+success-output = "never"
+status-level = "pass"
+slow-timeout = { period = "60s", terminate-after = 2 }
+leak-timeout = "10s"
+
+# Show test output for failures and slow tests
+final-status-level = "slow"
+
+# Enable JUnit output for CI integration
+junit = { path = "junit.xml" }
+
+# Test execution settings
+test-threads = "num-cpus"

@@ -20,6 +20,8 @@ pub fn FileUpload() -> impl IntoView {
     let (show_download, set_show_download) = signal(false);
     let (generation_status, set_generation_status) = signal::<Option<GenerationStatus>>(None);
     let (polling, set_polling) = signal(false);
+    let (top_offset, set_top_offset) = signal(0.0);
+    let (left_offset, set_left_offset) = signal(0.0);
 
     let file_input: NodeRef<Input> = NodeRef::new();
 
@@ -38,14 +40,13 @@ pub fn FileUpload() -> impl IntoView {
     let upload_handler = {
         let workflow = upload_workflow.clone();
         let status_handler = status_handler.clone();
-        let file_input = file_input.clone();
         move |_| match get_files_from_input(&file_input) {
             Ok(files) => {
                 if let Err(error) = validate_files(&files) {
                     status_handler.set_error(&error);
                     return;
                 }
-                workflow.execute(files);
+                workflow.execute_with_offsets(files, top_offset.get(), left_offset.get());
             }
             Err(error) => {
                 status_handler.set_error(&error);
@@ -158,6 +159,41 @@ pub fn FileUpload() -> impl IntoView {
                     accept=".pdf"
                     disabled={move || uploading.get()}
                 />
+
+                <div class="offset-controls">
+                    <div class="offset-input">
+                        <label for="top-offset">"Top Offset (cm):"</label>
+                        <input
+                            id="top-offset"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={move || top_offset.get()}
+                            on:input=move |ev| {
+                                if let Ok(value) = event_target_value(&ev).parse::<f64>() {
+                                    set_top_offset.set(value);
+                                }
+                            }
+                            disabled={move || uploading.get()}
+                        />
+                    </div>
+                    <div class="offset-input">
+                        <label for="left-offset">"Left Offset (cm):"</label>
+                        <input
+                            id="left-offset"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={move || left_offset.get()}
+                            on:input=move |ev| {
+                                if let Ok(value) = event_target_value(&ev).parse::<f64>() {
+                                    set_left_offset.set(value);
+                                }
+                            }
+                            disabled={move || uploading.get()}
+                        />
+                    </div>
+                </div>
 
                 <div class="button-group">
                     <button
