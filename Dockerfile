@@ -20,7 +20,7 @@ FROM rustlang/rust:nightly-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /work/target/release/leptos_start /app/
+COPY --from=builder /work/target/release/auto-bookmark /app/
 COPY --from=builder /work/target/site /app/site
 COPY --from=builder /work/Cargo.toml /app/
 COPY ./lib/libpdfium.so /app/lib/libpdfium.so
