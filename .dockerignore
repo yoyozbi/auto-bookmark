@@ -1,0 +1,7 @@
+target/
+uploads/
+Dockerfile
+.github
+auto-bookmark/
+out/
+output/

@@ -37,7 +37,8 @@
                   packages = with pkgs;
                     [
                       cargo-leptos
-                      sass
+                      nodePackages.sass
+                      binaryen
                     ];
 
                   dotenv.enable = true;
@@ -45,14 +46,14 @@
 
                   languages.rust = {
                     enable = true;
-                    channel = "stable";
+                    channel = "nightly";
                     targets = [ "wasm32-unknown-unknown" ];
                   };
 
                   enterShell = ''
                     export PATH="./lib:$PATH"
                     export PDFIUM_DYNAMIC_LIB_PATH="./lib"
-                    export PDFIUM_DEBUG_PATH="./lib/libpdfium.so"
+                    export PDFIUM_PATH="./lib/libpdfium.so"
                   '';
                 }
               ];
