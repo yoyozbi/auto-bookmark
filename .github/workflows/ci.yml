@@ -17,6 +17,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 jobs:
   rust-test:
     name: Rust Tests
