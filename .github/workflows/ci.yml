@@ -99,5 +99,5 @@ jobs:
         uses: dorny/test-reporter@v2
         with:
           name: Cargo test results
-          path: target/nexttest/ci/junit.xml
+          path: target/nextest/ci/junit.xml
           reporter: java-junit
