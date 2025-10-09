@@ -46,7 +46,7 @@ jobs:
         run: cargo build --verbose --features ssr
 
       - name: Install cargo-nextest
-        run: cargo install cargo-nextest --locked
+        run: cargo install cargo-nextest --locked --force
 
       - name: Run tests
         run: |
