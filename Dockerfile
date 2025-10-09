@@ -25,7 +25,7 @@ RUN mkdir -p src && \
     echo "// dummy lib" > src/lib.rs
 
 # Build dependencies only (this layer will be cached until Cargo.toml/Cargo.lock changes)
-RUN cargo build --release --bin auto-bookmark
+RUN cargo build --release --bin auto-bookmark --features ssr
 RUN cargo build --release --lib --target wasm32-unknown-unknown
 
 # Remove dummy source files
