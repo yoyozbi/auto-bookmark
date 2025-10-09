@@ -89,6 +89,7 @@ jobs:
     name: Docker Build Test
     runs-on: ubuntu-latest
     needs: [rust-test]
+    if: ${{ github.head_ref || github.ref_name }} != "main"
     permissions:
       packages: read
       contents: read
