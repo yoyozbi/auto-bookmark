@@ -14,6 +14,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.actor }}/auto-bookmarks
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
 jobs:
   build-and-deploy:
     name: Build and Push Docker Image
