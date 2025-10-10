@@ -14,10 +14,9 @@ axum = { version = "0.8.0", optional = true, features = ["macros"] }
 console_error_panic_hook = { version = "0.1", optional = true }
 leptos_axum = { version = "0.8.3", optional = true }
 leptos_meta = { version = "0.8.3" }
-tokio = { version = "1", features = ["rt-multi-thread"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "signal"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 wasm-bindgen = { version = "=0.2.100", optional = true }
-pdfium-render = { version = "0.8", features = ["image"], optional = true }
 web-sys = { version = "0.3.77", features = [
   "FileList",
   "File",
@@ -38,6 +37,8 @@ cfg-if = "1.0.1"
 tower-http = { version = "0.6.6", optional = true }
 tower = { version = "0.5.2", optional = true }
 futures-util = "0.3.31"
+hayro-svg = { version = "0.2.0", optional = true }
+hayro-interpret = { version = "0.4.0", optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
@@ -48,16 +49,16 @@ ssr = [
   "dep:axum",
   "dep:tokio",
   "dep:leptos_axum",
-  "dep:pdfium-render",
   "dep:typst-as-lib",
   "dep:typst-pdf",
+  "dep:hayro-svg",
+  "dep:hayro-interpret",
   "dep:tower-http",
   "dep:tower",
   "leptos/ssr",
   "leptos_meta/ssr",
   "leptos_router/ssr",
 ]
-
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]

@@ -51,9 +51,6 @@
                   };
 
                   enterShell = ''
-                    export PATH="./lib:$PATH"
-                    export PDFIUM_DYNAMIC_LIB_PATH="./lib"
-                    export PDFIUM_PATH="./lib/libpdfium.so"
                   '';
                 }
               ];

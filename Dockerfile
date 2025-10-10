@@ -35,7 +35,6 @@ RUN rm -rf src
 COPY src/ ./src/
 COPY style/ ./style/
 COPY public/ ./public/
-COPY lib/ ./lib/
 
 # Build the actual application (only this step runs when source code changes)
 RUN cargo leptos build --release -vv
@@ -49,13 +48,11 @@ WORKDIR /app
 COPY --from=builder /work/target/release/auto-bookmark /app/
 COPY --from=builder /work/target/site /app/site
 COPY --from=builder /work/Cargo.toml /app/
-COPY ./lib/libpdfium.so /app/lib/libpdfium.so
 
 # Set environment variables
 ENV RUST_LOG="info"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT=./site
-ENV PDFIUM_PATH=./lib/libpdfium.so
 
 EXPOSE 8080
 

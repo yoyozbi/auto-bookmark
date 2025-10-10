@@ -121,15 +121,6 @@ body {
     background-color: #5a6268;
 }
 
-.cleanup-btn {
-    background-color: #dc3545;
-    color: white;
-    margin-top: 10px;
-}
-
-.cleanup-btn:hover:not(:disabled) {
-    background-color: #c82333;
-}
 
 .status-banner {
     margin: 20px 0;
@@ -295,7 +286,6 @@ input[type="file"]:disabled {
     background-color: #f8f9fa;
 }
 
-// Responsive design
 // Spinner animation
 .spinner {
     display: inline-block;
@@ -373,6 +363,8 @@ input[type="file"]:disabled {
 }
 
 .cleanup-btn {
+    color: white;
+    margin-top: 10px;
     padding: 8px 16px;
     background-color: #f44336;
     color: white;
@@ -386,6 +378,10 @@ input[type="file"]:disabled {
 .cleanup-btn:hover {
     background-color: #d32f2f;
     transform: translateY(-1px);
+}
+
+.cleanup-btn:hover:not(:disabled) {
+    background-color: #c82333;
 }
 
 // Responsive design

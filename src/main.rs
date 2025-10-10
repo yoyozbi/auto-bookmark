@@ -10,6 +10,17 @@ use auto_bookmark::{app::*, upload_route::file_upload_routes};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::signal;
+
+async fn shutdown_signal()  {
+    match signal::ctrl_c().await {
+        Ok(()) => {},
+        Err(err) => {
+            eprint!("Unable to listen for shutdown signal: {}", err)
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let conf = get_configuration(None).unwrap();
@@ -35,6 +46,7 @@ async fn main() {
     log!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }

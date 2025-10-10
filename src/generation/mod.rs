@@ -17,6 +17,9 @@ mod extract_pdf_pages;
 mod generate_pdf;
 
 #[cfg(feature = "ssr")]
+mod pdf_wrapper;
+
+#[cfg(feature = "ssr")]
 pub mod validate_margins;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -38,6 +41,7 @@ pub struct GenerationRequest {
     generated_data: Option<Vec<u8>>,
 }
 
+#[cfg(feature = "ssr")]
 #[derive(Clone, Debug)]
 pub(crate) struct RectoVersoImagePair {
     pub recto_path: String,
@@ -126,7 +130,7 @@ impl GenerationRequest {
         for file in all_files.iter() {
             tokio::fs::remove_file(file)
                 .await
-                .map_err(|e| format!("Error deleting file: {}", e))?;
+                .map_err(|e| format!("Error deleting file ({}): {}", file, e))?;
         }
         Ok(())
     }
