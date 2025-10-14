@@ -35,18 +35,19 @@ impl StatusHandler {
     /// Updates UI based on generation status
     pub fn handle_generation_status(&self, status: GenerationStatus, request_id: Uuid) {
         let i18n = use_i18n();
+        let locale = i18n.get_locale();
         self.set_generation_status.set(Some(status.clone()));
 
         match status {
             GenerationStatus::Pending => {
-                self.set_status.set(td!(i18n, status_waiting_to_start));
+                self.set_status.set(format!("{}", td!(locale, status_waiting_to_start)));
             }
             GenerationStatus::Generating => {
-                self.set_status.set(td!(i18n, status_generating_pdf));
+                self.set_status.set(format!("{}", td!(locale, status_generating_pdf)));
             }
             GenerationStatus::Success => {
                 self.set_status
-                    .set(td!(i18n, status_pdf_generated_successfully));
+                    .set(format!("{}", td!(locale, status_pdf_generated_successfully)));
                 self.set_download_url
                     .set(ApiClient::get_download_url(request_id));
                 self.set_show_download.set(true);
@@ -54,7 +55,7 @@ impl StatusHandler {
             }
             GenerationStatus::Failure(error) => {
                 self.set_status
-                    .set(td!(i18n, status_generation_failed, error = error));
+                    .set(format!("{}", td!(locale, status_generation_failed, error = error)));
                 self.set_uploading.set(false);
             }
         }
@@ -63,7 +64,8 @@ impl StatusHandler {
     /// Sets an error status message
     pub fn set_error(&self, message: &str) {
         let i18n = use_i18n();
-        self.set_status.set(td!(i18n, status_error, message = message));
+        let locale = i18n.get_locale();
+        self.set_status.set(format!("{}", td!(locale, status_error, message = message)));
         self.set_uploading.set(false);
     }
 
@@ -121,10 +123,11 @@ pub fn get_status_indicator_class(status: &GenerationStatus) -> &'static str {
 
 /// Helper function to get status text for display
 pub fn get_status_text(status: &GenerationStatus, i18n: &I18nContext<Locale>) -> String {
+    let locale = i18n.get_locale();
     match status {
-        GenerationStatus::Pending => format!("⏳ {}", t!(i18n, status_pending)),
-        GenerationStatus::Generating => format!("⚙️ {}", t!(i18n, status_generating)),
-        GenerationStatus::Success => format!("✅ {}", t!(i18n, status_success)),
-        GenerationStatus::Failure(_) => format!("❌ {}", t!(i18n, status_failed)),
+        GenerationStatus::Pending => format!("⏳ {}", td!(locale, status_pending)),
+        GenerationStatus::Generating => format!("⚙️ {}", td!(locale, status_generating)),
+        GenerationStatus::Success => format!("✅ {}", td!(locale, status_success)),
+        GenerationStatus::Failure(_) => format!("❌ {}", td!(locale, status_failed)),
     }
 }

@@ -49,12 +49,13 @@ impl UploadWorkflow {
 
         spawn_local(async move {
             let i18n = use_i18n();
+            let locale = i18n.get_locale();
             
             // Initialize workflow
             status_handler.set_uploading.set(true);
             status_handler.set_show_download.set(false);
             status_handler.set_generation_status.set(None);
-            status_handler.set_info(&td!(i18n, workflow_starting_upload));
+            status_handler.set_info(&format!("{}", td!(locale, workflow_starting_upload)));
 
             // Step 1: Create upload request
             let request_id = match ApiClient::create_upload_request_with_offsets(
@@ -77,7 +78,7 @@ impl UploadWorkflow {
             let file_count = files.length();
             for i in 0..file_count {
                 if let Some(file) = files.get(i) {
-                    status_handler.set_info(&td!(i18n, workflow_uploading_files, current = (i + 1) as i32, total = file_count as i32));
+                    status_handler.set_info(&format!("{}", td!(locale, workflow_uploading_files, current = (i + 1) as i32, total = file_count as i32)));
 
                     if let Err(error) = ApiClient::upload_file(request_id, file).await {
                         status_handler.set_error(&error);
@@ -87,10 +88,10 @@ impl UploadWorkflow {
             }
 
             // Step 3: Start PDF generation
-            status_handler.set_info(&td!(i18n, workflow_starting_pdf_generation));
+            status_handler.set_info(&format!("{}", td!(locale, workflow_starting_pdf_generation)));
             match ApiClient::start_generation(request_id).await {
                 Ok(()) => {
-                    status_handler.set_info(&td!(i18n, workflow_pdf_generation_started));
+                    status_handler.set_info(&format!("{}", td!(locale, workflow_pdf_generation_started)));
                     set_current_request_id.set(Some(request_id));
 
                     // Set initial status to trigger automatic polling
@@ -122,12 +123,13 @@ impl UploadWorkflow {
                 let status_handler = status_handler.clone();
                 spawn_local(async move {
                     let i18n = use_i18n();
+                    let locale = i18n.get_locale();
                     match ApiClient::cleanup_request(request_id).await {
                         Ok(()) => {
                             set_current_request_id.set(None);
                             status_handler.set_show_download.set(false);
                             status_handler.set_generation_status.set(None);
-                            status_handler.set_info(&td!(i18n, workflow_request_cleaned_up));
+                            status_handler.set_info(&format!("{}", td!(locale, workflow_request_cleaned_up)));
                         }
                         Err(error) => {
                             status_handler.set_error(&error);
@@ -166,9 +168,10 @@ impl Clone for UploadWorkflow {
 /// Validates files before upload
 pub fn validate_files(files: &FileList) -> Result<(), String> {
     let i18n = use_i18n();
+    let locale = i18n.get_locale();
     
     if files.length() == 0 {
-        return Err(td!(i18n, validation_no_files_selected));
+        return Err((td!(locale, validation_no_files_selected))().to_string());
     }
 
     // Check each file type
@@ -176,14 +179,14 @@ pub fn validate_files(files: &FileList) -> Result<(), String> {
         if let Some(file) = files.get(i) {
             if !file.type_().starts_with("application/pdf") {
                 let filename = file.name();
-                return Err(td!(i18n, validation_not_pdf_file, filename = filename));
+                return Err((td!(locale, validation_not_pdf_file, filename = filename))().to_string());
             }
 
             // Check file size (limit to 50MB per file)
             const MAX_FILE_SIZE: f64 = 50.0 * 1024.0 * 1024.0; // 50MB
             if file.size() > MAX_FILE_SIZE {
                 let filename = file.name();
-                return Err(td!(i18n, validation_file_too_large, filename = filename));
+                return Err((td!(locale, validation_file_too_large, filename = filename))().to_string());
             }
         }
     }
