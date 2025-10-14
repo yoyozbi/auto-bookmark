@@ -5,6 +5,9 @@ use leptos_router::{
     StaticSegment,
     components::{Route, Router, Routes},
 };
+
+use crate::i18n::*;
+
 cfg_if! {
     if #[cfg(feature = "ssr")] {
         use crate::generation::GenerationRequest;
@@ -55,12 +58,14 @@ pub fn App() -> impl IntoView {
         <Title text="Welcome to Leptos"/>
 
         // content for this welcome page
-        <Router>
-            <main>
-                <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=StaticSegment("") view=HomePage />
-                </Routes>
-            </main>
-        </Router>
+        <I18nContextProvider>
+            <Router>
+                <main>
+                    <Routes fallback=|| "Page not found.".into_view()>
+                        <Route path=StaticSegment("") view=HomePage />
+                    </Routes>
+                </main>
+            </Router>
+        </I18nContextProvider>
     }
 }
