@@ -1,0 +1,40 @@
+{
+  "file_upload": {
+    "title": "Télécharger des fichiers PDF pour le traitement",
+    "top_offset_label": "Décalage haut (cm) :",
+    "left_offset_label": "Décalage gauche (cm) :",
+    "uploading_files": "Téléchargement des fichiers...",
+    "upload_generate_pdf": "Télécharger et générer le PDF",
+    "reset": "Réinitialiser",
+    "uploading_files_title": "Téléchargement des fichiers",
+    "uploading_files_message": "Téléchargement des fichiers et démarrage de la génération...",
+    "success": "Succès",
+    "pdf_generated_successfully": "PDF généré avec succès !",
+    "download_pdf": "Télécharger le PDF",
+    "clean_up": "Nettoyer",
+    "auto_checking": " (Vérification automatique toutes les 10s)"
+  },
+  "status": {
+    "waiting_to_start": "Statut : En attente de démarrage de la génération...",
+    "generating_pdf": "Statut : Génération du PDF...",
+    "pdf_generated_successfully": "Statut : PDF généré avec succès !",
+    "generation_failed": "Statut : Échec de la génération : {error}",
+    "error": "Erreur : {message}",
+    "pending": "En attente",
+    "generating": "Génération en cours",
+    "success": "Succès",
+    "failed": "Échec"
+  },
+  "workflow": {
+    "starting_upload": "Démarrage du téléchargement...",
+    "uploading_files": "Téléchargement des fichiers : {current}/{total}",
+    "starting_pdf_generation": "Démarrage de la génération du PDF...",
+    "pdf_generation_started": "Génération du PDF démarrée. Vérification du statut...",
+    "request_cleaned_up": "Requête nettoyée"
+  },
+  "validation": {
+    "no_files_selected": "Aucun fichier sélectionné",
+    "not_pdf_file": "Le fichier '{filename}' n'est pas un fichier PDF. Seuls les fichiers PDF sont autorisés.",
+    "file_too_large": "Le fichier '{filename}' est trop volumineux. La taille maximale du fichier est de 50 Mo."
+  }
+}

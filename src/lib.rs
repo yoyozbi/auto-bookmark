@@ -8,6 +8,9 @@ pub mod fallback;
 pub mod generation;
 pub mod utils;
 
+// Load i18n locales from Cargo.toml metadata
+leptos_i18n::load_locales!();
+
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn hydrate() {

@@ -1,0 +1,40 @@
+{
+  "file_upload": {
+    "title": "Upload PDF Files for Processing",
+    "top_offset_label": "Top Offset (cm):",
+    "left_offset_label": "Left Offset (cm):",
+    "uploading_files": "Uploading Files...",
+    "upload_generate_pdf": "Upload & Generate PDF",
+    "reset": "Reset",
+    "uploading_files_title": "Uploading Files",
+    "uploading_files_message": "Uploading files and starting generation...",
+    "success": "Success",
+    "pdf_generated_successfully": "PDF Generated Successfully!",
+    "download_pdf": "Download PDF",
+    "clean_up": "Clean Up",
+    "auto_checking": " (Auto-checking every 10s)"
+  },
+  "status": {
+    "waiting_to_start": "Status: Waiting to start generation...",
+    "generating_pdf": "Status: Generating PDF...",
+    "pdf_generated_successfully": "Status: PDF generated successfully!",
+    "generation_failed": "Status: Generation failed: {error}",
+    "error": "Error: {message}",
+    "pending": "Pending",
+    "generating": "Generating",
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "workflow": {
+    "starting_upload": "Starting upload...",
+    "uploading_files": "Uploading files: {current}/{total}",
+    "starting_pdf_generation": "Starting PDF generation...",
+    "pdf_generation_started": "PDF generation started. Checking status...",
+    "request_cleaned_up": "Request cleaned up"
+  },
+  "validation": {
+    "no_files_selected": "No files selected",
+    "not_pdf_file": "File '{filename}' is not a PDF file. Only PDF files are allowed.",
+    "file_too_large": "File '{filename}' is too large. Maximum file size is 50MB."
+  }
+}
