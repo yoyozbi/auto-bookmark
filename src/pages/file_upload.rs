@@ -5,6 +5,7 @@ use leptos::reactive::spawn_local;
 use uuid::Uuid;
 
 use crate::generation::GenerationStatus;
+use crate::i18n::*;
 use crate::utils::{
     api::get_files_from_input,
     status_handler::{StatusHandler, get_status_indicator_class, get_status_text},
@@ -13,6 +14,8 @@ use crate::utils::{
 
 #[component]
 pub fn FileUpload() -> impl IntoView {
+    let i18n = use_i18n();
+    
     // Signals for component state
     let (status, set_status) = signal(String::new());
     let (uploading, set_uploading) = signal(false);
@@ -155,7 +158,7 @@ pub fn FileUpload() -> impl IntoView {
 
     view! {
         <div class="file-upload-container">
-            <h3>"Upload PDF Files for Processing"</h3>
+            <h3>{t!(i18n, file_upload_title)}</h3>
 
             <div class="upload-section">
                 <input
@@ -168,7 +171,7 @@ pub fn FileUpload() -> impl IntoView {
 
                 <div class="offset-controls">
                     <div class="offset-input">
-                        <label for="top-offset">"Top Offset (cm):"</label>
+                        <label for="top-offset">{t!(i18n, file_upload_top_offset_label)}</label>
                         <input
                             id="top-offset"
                             type="number"
@@ -184,7 +187,7 @@ pub fn FileUpload() -> impl IntoView {
                         />
                     </div>
                     <div class="offset-input">
-                        <label for="left-offset">"Left Offset (cm):"</label>
+                        <label for="left-offset">{t!(i18n, file_upload_left_offset_label)}</label>
                         <input
                             id="left-offset"
                             type="number"
@@ -209,9 +212,9 @@ pub fn FileUpload() -> impl IntoView {
                     >
                         {move || {
                             if uploading.get() {
-                                "Uploading Files..."
+                                t!(i18n, file_upload_uploading_files)
                             } else {
-                                "Upload & Generate PDF"
+                                t!(i18n, file_upload_upload_generate_pdf)
                             }
                         }}
                     </button>
@@ -221,7 +224,7 @@ pub fn FileUpload() -> impl IntoView {
                         disabled={move || uploading.get()}
                         class="reset-btn"
                     >
-                        "Reset"
+                        {t!(i18n, file_upload_reset)}
                     </button>
                 </div>
             </div>
@@ -240,12 +243,12 @@ pub fn FileUpload() -> impl IntoView {
                             <div class="banner-content upload-state">
                                 <div class="banner-header">
                                     <div class="spinner-ring"></div>
-                                    <h4>"Uploading Files"</h4>
+                                    <h4>{t!(i18n, file_upload_uploading_files_title)}</h4>
                                 </div>
                                 <div class="progress-bar">
                                     <div class="progress-fill"></div>
                                 </div>
-                                <p class="banner-text">"Uploading files and starting generation..."</p>
+                                <p class="banner-text">{t!(i18n, file_upload_uploading_files_message)}</p>
                             </div>
                         }.into_any()
                     } else if show_download.get() {
@@ -254,8 +257,8 @@ pub fn FileUpload() -> impl IntoView {
                         view! {
                             <div class="banner-content success-state">
                                 <div class="banner-header">
-                                    <div class="status-indicator success">"✅ Success"</div>
-                                    <h4>"PDF Generated Successfully!"</h4>
+                                    <div class="status-indicator success">{format!("✅ {}", t!(i18n, file_upload_success))}</div>
+                                    <h4>{t!(i18n, file_upload_pdf_generated_successfully)}</h4>
                                 </div>
                                 <div class="banner-actions">
                                     <a
@@ -263,13 +266,13 @@ pub fn FileUpload() -> impl IntoView {
                                         target="_blank"
                                         class="download-link"
                                     >
-                                        "📄 Download PDF"
+                                        {format!("📄 {}", t!(i18n, file_upload_download_pdf))}
                                     </a>
                                     <button
                                         on:click=cleanup_handler
                                         class="cleanup-btn"
                                     >
-                                        "Clean Up"
+                                        {t!(i18n, file_upload_clean_up)}
                                     </button>
                                 </div>
                             </div>
@@ -291,7 +294,7 @@ pub fn FileUpload() -> impl IntoView {
                                     {move || {
                                         if let Some(gen_status) = generation_status.get() {
                                             let class = get_status_indicator_class(&gen_status);
-                                            let text = get_status_text(&gen_status);
+                                            let text = get_status_text(&gen_status, &i18n);
                                             view! { <div class=class>{text}</div> }.into_any()
                                         } else {
                                             view! { <div></div> }.into_any()
@@ -304,7 +307,7 @@ pub fn FileUpload() -> impl IntoView {
                                         if auto_polling.get() {
                                             view! {
                                                 <span class="auto-polling-text">
-                                                    " (Auto-checking every 10s)"
+                                                    {t!(i18n, file_upload_auto_checking)}
                                                 </span>
                                             }.into_any()
                                         } else {

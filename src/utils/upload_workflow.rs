@@ -3,6 +3,7 @@ use leptos::reactive::spawn_local;
 use uuid::Uuid;
 use web_sys::FileList;
 
+use crate::i18n::*;
 use crate::utils::api::ApiClient;
 use crate::utils::status_handler::StatusHandler;
 
@@ -47,11 +48,13 @@ impl UploadWorkflow {
         let start_polling = start_polling; // Explicitly capture for move
 
         spawn_local(async move {
+            let i18n = use_i18n();
+            
             // Initialize workflow
             status_handler.set_uploading.set(true);
             status_handler.set_show_download.set(false);
             status_handler.set_generation_status.set(None);
-            status_handler.set_info("Starting upload...");
+            status_handler.set_info(&td!(i18n, workflow_starting_upload));
 
             // Step 1: Create upload request
             let request_id = match ApiClient::create_upload_request_with_offsets(
@@ -74,7 +77,7 @@ impl UploadWorkflow {
             let file_count = files.length();
             for i in 0..file_count {
                 if let Some(file) = files.get(i) {
-                    status_handler.set_info(&format!("Uploading files: {}/{}", i + 1, file_count));
+                    status_handler.set_info(&td!(i18n, workflow_uploading_files, current = (i + 1) as i32, total = file_count as i32));
 
                     if let Err(error) = ApiClient::upload_file(request_id, file).await {
                         status_handler.set_error(&error);
@@ -84,10 +87,10 @@ impl UploadWorkflow {
             }
 
             // Step 3: Start PDF generation
-            status_handler.set_info("Starting PDF generation...");
+            status_handler.set_info(&td!(i18n, workflow_starting_pdf_generation));
             match ApiClient::start_generation(request_id).await {
                 Ok(()) => {
-                    status_handler.set_info("PDF generation started. Checking status...");
+                    status_handler.set_info(&td!(i18n, workflow_pdf_generation_started));
                     set_current_request_id.set(Some(request_id));
 
                     // Set initial status to trigger automatic polling
@@ -118,12 +121,13 @@ impl UploadWorkflow {
             if let Some(request_id) = current_request_id.get() {
                 let status_handler = status_handler.clone();
                 spawn_local(async move {
+                    let i18n = use_i18n();
                     match ApiClient::cleanup_request(request_id).await {
                         Ok(()) => {
                             set_current_request_id.set(None);
                             status_handler.set_show_download.set(false);
                             status_handler.set_generation_status.set(None);
-                            status_handler.set_info("Request cleaned up");
+                            status_handler.set_info(&td!(i18n, workflow_request_cleaned_up));
                         }
                         Err(error) => {
                             status_handler.set_error(&error);
@@ -161,27 +165,25 @@ impl Clone for UploadWorkflow {
 
 /// Validates files before upload
 pub fn validate_files(files: &FileList) -> Result<(), String> {
+    let i18n = use_i18n();
+    
     if files.length() == 0 {
-        return Err("No files selected".to_string());
+        return Err(td!(i18n, validation_no_files_selected));
     }
 
     // Check each file type
     for i in 0..files.length() {
         if let Some(file) = files.get(i) {
             if !file.type_().starts_with("application/pdf") {
-                return Err(format!(
-                    "File '{}' is not a PDF file. Only PDF files are allowed.",
-                    file.name()
-                ));
+                let filename = file.name();
+                return Err(td!(i18n, validation_not_pdf_file, filename = filename));
             }
 
             // Check file size (limit to 50MB per file)
             const MAX_FILE_SIZE: f64 = 50.0 * 1024.0 * 1024.0; // 50MB
             if file.size() > MAX_FILE_SIZE {
-                return Err(format!(
-                    "File '{}' is too large. Maximum file size is 50MB.",
-                    file.name()
-                ));
+                let filename = file.name();
+                return Err(td!(i18n, validation_file_too_large, filename = filename));
             }
         }
     }
