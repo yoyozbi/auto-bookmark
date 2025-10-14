@@ -27,14 +27,14 @@ impl PdfDocumentWrapper {
         let path = path.as_ref();
         let file_data = tokio::fs::read(path)
             .await
-            .map_err(|e| ImageExtractionError::Reading(e))?;
+            .map_err(ImageExtractionError::Reading)?;
         let stem = path
             .file_stem()
-            .and_then(|f| Some(f.to_string_lossy().to_string()))
+            .map(|f| f.to_string_lossy().to_string())
             .unwrap_or(Uuid::new_v4().to_string());
 
         let data = Arc::new(file_data);
-        let pdf = Pdf::new(data).map_err(|e| ImageExtractionError::Parsing)?;
+        let pdf = Pdf::new(data).map_err(|_e| ImageExtractionError::Parsing)?;
         Ok(Self {
             stem,
             document: pdf,
