@@ -11,7 +11,9 @@ const PAGE_DEFINITION: &str = r#"#set page(margin: (
 
 "#;
 
-const GRID_DEFINITION: &str = r#"#grid(
+const GRID_DEFINITION: &str = r#"
+#pad(left: {pad-left}cm, top: {pad-top}cm)[
+#grid(
   columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
   column-gutter: {column-gutter}cm,
@@ -20,7 +22,7 @@ const GRID_DEFINITION: &str = r#"#grid(
 
 
 {cells}
-)
+)]
 "#;
 
 const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
@@ -53,6 +55,8 @@ pub struct GridConfig {
     pub row_gutter: f64,
     pub image_width: f64,
     pub rotation_angle: f64,
+    pub top_offset: f64,
+    pub left_offset: f64,
 }
 
 impl Default for GridConfig {
@@ -62,6 +66,8 @@ impl Default for GridConfig {
             row_gutter: 0.7,
             image_width: 5.5,
             rotation_angle: 75.0,
+            top_offset: 0.0,
+            left_offset: 0.0,
         }
     }
 }
@@ -106,11 +112,26 @@ fn generate_typst_content(
                     .replace("{width}", &config.image_width.to_string()),
             );
         }
+
+        let mut pad_left_value = if config.left_offset.is_sign_negative() {
+            config.left_offset.abs().to_string()
+        } else {
+            0.to_string()
+        };
+
+        let mut pad_top_value = if config.top_offset.is_sign_negative() {
+            config.top_offset.abs().to_string()
+        } else {
+            0.to_string()
+        };
+
         content.push_str(
             &GRID_DEFINITION
                 .replace("{column-gutter}", &config.column_gutter.to_string())
                 .replace("{row-gutter}", &config.row_gutter.to_string())
-                .replace("{cells}", &recto_cells),
+                .replace("{cells}", &recto_cells)
+                .replace("{pad-left}", &pad_left_value)
+                .replace("{pad-top}", &pad_top_value),
         );
 
         // VERSO
@@ -133,23 +154,29 @@ fn generate_typst_content(
             );
         }
 
+        pad_left_value = if config.left_offset.is_sign_positive() {
+            config.left_offset.abs().to_string()
+        } else {
+            0.to_string()
+        };
+
+        pad_top_value = if config.top_offset.is_sign_positive() {
+            config.top_offset.abs().to_string()
+        } else {
+            0.to_string()
+        };
+
         content.push_str(
             &GRID_DEFINITION
                 .replace("{column-gutter}", &config.column_gutter.to_string())
                 .replace("{row-gutter}", &config.row_gutter.to_string())
-                .replace("{cells}", &verso_cells),
+                .replace("{cells}", &verso_cells)
+                .replace("{pad-left}", &pad_left_value)
+                .replace("{pad-top}", &pad_top_value),
         );
     }
 
     content
-}
-
-pub fn generate_pdf(
-    images: &[RectoVersoImagePair],
-) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
-    let margins = PageMargins::default();
-    let config = GridConfig::default();
-    generate_pdf_with_config(images, &margins, &config)
 }
 
 pub fn generate_pdf_with_config(
@@ -213,6 +240,8 @@ mod tests {
  right: 2cm
 ))
 
+
+#pad(left: 0cm, top: 0cm)[
 #grid(
   columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
@@ -226,7 +255,9 @@ image("recto/uglylove.png", width: 5.5cm),
 image("recto/yoyo.png", width: 5.5cm),
 grid.cell(rotate(75deg, image("recto/dragon.png", width: 5.5cm), reflow: true), colspan: 3),
 
-)
+)]
+
+#pad(left: 0cm, top: 0cm)[
 #grid(
   columns: (1fr, 1fr, 1fr),
   rows: (auto, auto),
@@ -240,15 +271,13 @@ image("verso/uglylove.png", width: 5.5cm),
 image("verso/devils4.png", width: 5.5cm),
 grid.cell(rotate(-75deg, image("verso/dragon.png", width: 5.5cm), reflow: true), colspan: 3),
 
-)
+)]
 "#;
 
         let margins = PageMargins::default();
         let config = GridConfig::default();
 
         let content = generate_typst_content(&images, &margins, &config);
-
-        println!("Generated Typst content:\n{}", content);
 
         assert_eq!(content, EXPECTED);
     }

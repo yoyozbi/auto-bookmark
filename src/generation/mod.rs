@@ -2,9 +2,6 @@
 use extract_pdf_pages::split_pages_from_input_pdfs;
 
 #[cfg(feature = "ssr")]
-use generate_pdf::generate_pdf;
-
-#[cfg(feature = "ssr")]
 use itertools::Itertools;
 
 use serde::{Deserialize, Serialize};
@@ -89,10 +86,7 @@ impl GenerationRequest {
     }
 
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        println!(
-            "Generating pdfs with {} input files",
-            self.input_files.len()
-        );
+        use crate::generation::generate_pdf::{GridConfig, PageMargins, generate_pdf_with_config};
 
         let image_pairs = split_pages_from_input_pdfs(&self.input_files, self.id).await;
         let image_pairs = match image_pairs {
@@ -102,7 +96,13 @@ impl GenerationRequest {
                 return Err(format!("Failed to create image pairs: {}", _e).into());
             }
         };
-        let pdf = generate_pdf(&image_pairs);
+        let margins_config = PageMargins::default();
+        let grid_config = GridConfig {
+            left_offset: self.left_offset,
+            top_offset: self.top_offset,
+            ..Default::default()
+        };
+        let pdf = generate_pdf_with_config(&image_pairs, &margins_config, &grid_config);
 
         let images = image_pairs
             .iter()

@@ -47,7 +47,6 @@ cfg_if! {
                 }
             }
 
-            println!("Create upload request: {:#?}", request);
             requests.push(request.clone());
             Ok(Json(request))
         }
@@ -61,7 +60,6 @@ cfg_if! {
                 ) -> impl IntoResponse
         {
             let mut requests = app_state.requests.lock().await;
-            println!("Upload file: {:#?}", requests);
 
             let request = requests.iter_mut().find(|f| f.id == request_id);
 

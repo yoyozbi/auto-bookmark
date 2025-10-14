@@ -90,8 +90,8 @@ pub fn FileUpload() -> impl IntoView {
                         }
                     }
 
-                    // Wait 10 seconds before next check
-                    gloo_timers::future::sleep(std::time::Duration::from_secs(10)).await;
+                    // Wait 5 seconds before next check
+                    gloo_timers::future::sleep(std::time::Duration::from_secs(5)).await;
                 }
             });
         }
@@ -304,7 +304,7 @@ pub fn FileUpload() -> impl IntoView {
                                         if auto_polling.get() {
                                             view! {
                                                 <span class="auto-polling-text">
-                                                    " (Auto-checking every 10s)"
+                                                    " (Auto-checking every 5s)"
                                                 </span>
                                             }.into_any()
                                         } else {
