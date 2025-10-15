@@ -8,7 +8,7 @@ cfg_if! {
 
         use axum::{
             Json,
-            extract::{Multipart, State, Path},
+            extract::{Multipart, State, Path, DefaultBodyLimit},
             http::StatusCode,
             http::{header, HeaderMap},
             routing::{post, get, delete},
@@ -263,6 +263,7 @@ cfg_if! {
                 .route("/api/upload/{request_id}/status", get(get_status))
                 .route("/api/upload/{request_id}/download", get(get_file))
                 .route("/api/upload/{request_id}", delete(cleanup_request))
+                .layer(DefaultBodyLimit::max(10_240_000_000)) // 10MB
         }
     }
 }
