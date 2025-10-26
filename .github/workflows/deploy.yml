@@ -51,8 +51,7 @@ jobs:
       - name: Install Node.js for sass
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
 
       - name: Install sass and cargo-leptos
         run: |
@@ -115,18 +114,18 @@ jobs:
           mkdir -p ./dist/linux/amd64
           mkdir -p ./dist/linux/arm64
           mkdir -p ./dist/site
-          
+
           # Copy binaries
           cp ./artifacts/auto-bookmark-amd64/auto-bookmark ./dist/linux/amd64/
           cp ./artifacts/auto-bookmark-arm64/auto-bookmark ./dist/linux/arm64/
-          
+
           # Copy site assets
           cp -r ./artifacts/leptos-site/* ./dist/site/
-          
+
           # Make binaries executable
           chmod +x ./dist/linux/amd64/auto-bookmark
           chmod +x ./dist/linux/arm64/auto-bookmark
-          
+
           ls -la ./dist/linux/*/
 
       - name: Set up QEMU
