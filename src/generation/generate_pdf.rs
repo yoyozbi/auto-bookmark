@@ -121,14 +121,16 @@ fn generate_typst_content(
             );
         }
 
-        let mut pad_left_value = if config.left_offset.is_sign_negative() {
-            config.left_offset.abs().to_string()
+        // For recto (front) pages: apply positive offsets as left/top padding 
+        // Positive = shift front pages right/down, Negative = no padding on front
+        let mut pad_left_value = if config.left_offset.is_sign_positive() {
+            config.left_offset.to_string()
         } else {
             0.to_string()
         };
 
-        let mut pad_top_value = if config.top_offset.is_sign_negative() {
-            config.top_offset.abs().to_string()
+        let mut pad_top_value = if config.top_offset.is_sign_positive() {
+            config.top_offset.to_string()
         } else {
             0.to_string()
         };
@@ -164,13 +166,15 @@ fn generate_typst_content(
             );
         }
 
-        pad_left_value = if config.left_offset.is_sign_positive() {
+        // For verso (back) pages: apply negative offsets as left/top padding
+        // Negative = shift back pages right/down (front pages appear left/up), Positive = no padding on back  
+        pad_left_value = if config.left_offset.is_sign_negative() {
             config.left_offset.abs().to_string()
         } else {
             0.to_string()
         };
 
-        pad_top_value = if config.top_offset.is_sign_positive() {
+        pad_top_value = if config.top_offset.is_sign_negative() {
             config.top_offset.abs().to_string()
         } else {
             0.to_string()
