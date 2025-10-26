@@ -60,8 +60,6 @@ fn get_pdf_page_count<P: AsRef<Path> + std::fmt::Debug>(
 /// This replaces the old image extraction approach
 async fn process_pdf_file<P: AsRef<Path>>(
     pdf_path: P,
-    output_dir: P,
-    request_id: Uuid,
 ) -> Result<Vec<PdfPagePair>, ExtractionError> {
     let pdf_path = pdf_path.as_ref();
 
@@ -78,22 +76,8 @@ async fn process_pdf_file<P: AsRef<Path>>(
         return Err(ExtractionError::OddPageCount(page_count));
     }
 
-    // Create output directory
-    tokio::fs::create_dir_all(&output_dir).await?;
-
-    // Copy PDF to output directory with request ID
-    let file_stem = pdf_path
-        .file_stem()
-        .unwrap_or_else(|| std::ffi::OsStr::new("document"))
-        .to_string_lossy();
-
-    let output_pdf_name = format!("{}_{}.pdf", file_stem, request_id);
-    let output_pdf_path = output_dir.as_ref().join(&output_pdf_name);
-
-    tokio::fs::copy(pdf_path, &output_pdf_path).await?;
-
     // Create page pairs
-    let pairs = create_pdf_page_pairs(&output_pdf_path, page_count)
+    let pairs = create_pdf_page_pairs(pdf_path, page_count)
         .map_err(|e| ExtractionError::PdfProcessingError(e.to_string()))?;
 
     Ok(pairs)
@@ -107,22 +91,14 @@ pub async fn split_pages_from_input_pdfs(
     if pdf_files.is_empty() {
         return Ok(Vec::new());
     }
-
-    // Create output directory
-    let output_dir = PathBuf::from("output").join(request_id.to_string());
-    tokio::fs::create_dir_all(&output_dir).await?;
-
     let mut all_pairs = Vec::new();
     let mut join_set = JoinSet::new();
 
     // Process all PDFs concurrently
     for pdf_path in pdf_files {
         let pdf_path = pdf_path.clone();
-        let output_dir = output_dir.clone();
 
-        join_set.spawn(async move {
-            process_pdf_file(pdf_path.as_str(), output_dir.to_str().unwrap(), request_id).await
-        });
+        join_set.spawn(async move { process_pdf_file(pdf_path.as_str()).await });
     }
 
     // Collect results

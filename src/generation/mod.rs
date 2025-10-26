@@ -19,17 +19,27 @@ pub enum GenerationStatus {
     Generating,
     Success,
     Failure(String),
+    Downloaded,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct GenerationRequest {
     pub id: Uuid,
+    #[serde(skip_serializing, default)]
     pub input_files: Vec<String>,
     pub top_offset: f64,
     pub left_offset: f64,
     status: GenerationStatus,
+
+    pub created_at: std::time::SystemTime,
+
+    #[serde(skip_serializing, default)]
     #[cfg(feature = "ssr")]
     generated_data: Option<Vec<u8>>,
+
+    #[serde(skip_serializing, default)]
+    #[cfg(feature = "ssr")]
+    pub downloaded_at: Option<std::time::SystemTime>,
 }
 
 impl Default for GenerationRequest {
@@ -40,8 +50,11 @@ impl Default for GenerationRequest {
             top_offset: 0.0,
             left_offset: 0.0,
             status: GenerationStatus::Pending,
+            created_at: std::time::SystemTime::now(),
             #[cfg(feature = "ssr")]
             generated_data: None,
+            #[cfg(feature = "ssr")]
+            downloaded_at: None,
         }
     }
 }
@@ -58,6 +71,10 @@ impl GenerationRequest {
 
     pub fn set_status(&mut self, status: GenerationStatus) {
         self.status = status;
+    }
+
+    pub fn set_downloaded_now(&mut self) {
+        self.downloaded_at = Some(std::time::SystemTime::now());
     }
 
     pub fn get_generated_data(&self) -> Option<&Vec<u8>> {
@@ -79,7 +96,7 @@ impl GenerationRequest {
         let page_pairs = match page_pairs {
             Ok(pairs) => pairs,
             Err(_e) => {
-                self.delete_files(None).await?;
+                self.delete_files().await?;
                 return Err(format!("Failed to create page pairs: {}", _e).into());
             }
         };
@@ -91,15 +108,7 @@ impl GenerationRequest {
         };
         let pdf = generate_pdf_with_config(&page_pairs, &margins_config, &grid_config);
 
-        // Clean up the copied PDF files
-        let pdf_files: Vec<String> = page_pairs
-            .iter()
-            .map(|pair| pair.pdf_path.clone())
-            .collect::<std::collections::HashSet<_>>() // Remove duplicates
-            .into_iter()
-            .collect();
-
-        self.delete_files(Some(pdf_files)).await?;
+        self.delete_files().await?;
 
         match pdf {
             Ok(data) => Ok(data),
@@ -107,17 +116,8 @@ impl GenerationRequest {
         }
     }
 
-    async fn delete_files(
-        &self,
-        additional_file_paths: Option<Vec<String>>,
-    ) -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
-        let mut all_files: Vec<String> = self.input_files.clone();
-
-        if let Some(mut files) = additional_file_paths {
-            all_files.append(&mut files);
-        }
-
-        for file in all_files.iter() {
+    pub async fn delete_files(&self) -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
+        for file in self.input_files.iter() {
             tokio::fs::remove_file(file)
                 .await
                 .map_err(|e| format!("Error deleting file ({}): {}", file, e))?;

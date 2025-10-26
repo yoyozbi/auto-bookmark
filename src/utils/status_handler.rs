@@ -55,6 +55,12 @@ impl StatusHandler {
                     .set(format!("Status: Generation failed: {}", error));
                 self.set_uploading.set(false);
             }
+            GenerationStatus::Downloaded => {
+                self.set_status
+                    .set("Status: PDF has been downloaded".to_string());
+                // Keep download available
+                self.set_uploading.set(false);
+            }
         }
     }
 
@@ -113,6 +119,7 @@ pub fn get_status_indicator_class(status: &GenerationStatus) -> &'static str {
         GenerationStatus::Generating => "status-indicator generating",
         GenerationStatus::Success => "status-indicator success",
         GenerationStatus::Failure(_) => "status-indicator failure",
+        GenerationStatus::Downloaded => "status-indicator success",
     }
 }
 
@@ -123,5 +130,6 @@ pub fn get_status_text(status: &GenerationStatus) -> String {
         GenerationStatus::Generating => "⚙️ Generating".to_string(),
         GenerationStatus::Success => "✅ Success".to_string(),
         GenerationStatus::Failure(_) => "❌ Failed".to_string(),
+        GenerationStatus::Downloaded => "📄 Downloaded".to_string(),
     }
 }

@@ -18,6 +18,7 @@ cfg_if! {
         use tokio::fs;
 
         use axum::response::IntoResponse;
+        use std::time::{Duration, SystemTime};
 
         #[axum::debug_handler]
         pub async fn create_upload_request(
@@ -205,12 +206,15 @@ cfg_if! {
             Path(request_id): Path<Uuid>,
             State(app_state): State<AppState>,
         ) -> impl IntoResponse {
-            let requests = app_state.requests.lock().await;
-            let request = requests.iter().find(|f| f.id == request_id);
+            let mut requests = app_state.requests.lock().await;
+            let request = requests.iter_mut().find(|f| f.id == request_id);
 
             match request {
                 Some(req) if matches!(req.status(), GenerationStatus::Success) => {
-                    if let Some(data) = req.get_generated_data() {
+                    if let Some(data) = req.get_generated_data().cloned() {
+                        req.set_status(GenerationStatus::Downloaded);
+                        req.set_downloaded_now();
+
                         let mut headers = HeaderMap::new();
                         headers.insert(
                             header::CONTENT_TYPE,
@@ -220,7 +224,7 @@ cfg_if! {
                             header::CONTENT_DISPOSITION,
                             "attachment; filename=\"generated.pdf\"".parse().unwrap(),
                         );
-                        Ok((headers, data.clone()))
+                        Ok((headers, data))
                     } else {
                         println!("Request {} has success status but no generated data", request_id);
                         Err(StatusCode::INTERNAL_SERVER_ERROR)

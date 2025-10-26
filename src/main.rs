@@ -1,7 +1,7 @@
 use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(feature = "ssr")] {
-use auto_bookmark::{app::*, upload_route::file_upload_routes};
+use auto_bookmark::{app::*, upload_route::file_upload_routes, generation::GenerationStatus};
     use axum::Router;
     use leptos::logging::log;
     use leptos::prelude::*;
@@ -10,7 +10,86 @@ use auto_bookmark::{app::*, upload_route::file_upload_routes};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::time::{Duration, SystemTime};
 use tokio::signal;
+
+/// Cleanup task that removes downloaded requests older than 5 minutes
+async fn cleanup_old_downloads(app_state: AppState) {
+    // When on debug, the timer is every 30s
+    #[cfg(debug_assertions)]
+    let time =
+        Duration::from_secs(30); // 30 seconds
+    #[cfg(not(debug_assertions))]
+    let time = Duration::from_mins(5); // 5 minutes
+
+    #[cfg(debug_assertions)]
+    let no_activity_duration = Duration::from_mins(2); // 2 minutes
+    #[cfg(not(debug_assertions))]
+    let no_activity_duration = Duration::from_mins(30); // 30 minutes
+
+    let mut interval = tokio::time::interval(time);
+    loop {
+        interval.tick().await;
+
+        let mut requests = app_state.requests.lock().await;
+        let now = SystemTime::now();
+        let initial_count = requests.len();
+
+        // Remove requests that were downloaded
+        requests.retain(|req| {
+            if matches!(req.status(), GenerationStatus::Downloaded)
+                    && let Some(downloaded_at) = req.downloaded_at
+                    && let Ok(elapsed) = now.duration_since(downloaded_at)
+                    && elapsed > time{
+                log!("Cleaning up old downloaded request: {}", req.id);
+                return false; // Remove this request
+            }
+            true // Keep this request
+        });
+
+        for (i, req) in requests.clone().iter().enumerate() {
+            // Also remove requests that have had no activity for a long time
+            if let Ok(elapsed) = now.duration_since(req.created_at) && elapsed > no_activity_duration {
+                log!("Cleaning up inactive request: {}", req.id);
+                req.delete_files().await.ok();
+                requests.remove(i);
+            }
+        }
+
+        // Clear uploaded files that are not linked to anything
+        let files_in_use: Vec<String> = requests
+            .iter()
+            .flat_map(|req| req.input_files.clone())
+            .collect();
+
+
+        let files = tokio::fs::read_dir("uploads/").await;
+        let file_paths = match files {
+            Ok(mut dir) => {
+                let mut paths = Vec::new();
+                while let Ok(Some(entry)) = dir.next_entry().await {
+                    paths.push(entry.path());
+                }
+                paths
+            }
+            Err(_) => Vec::new(),
+        };
+
+        for path in file_paths {
+            if let Some(path_str) = path.to_str()
+                    && !files_in_use.contains(&path_str.to_string()){
+                log!("Removing unlinked uploaded file: {}", path_str);
+                tokio::fs::remove_file(path).await.ok();
+            }
+        }
+
+
+        let cleaned_count = initial_count - requests.len();
+        if cleaned_count > 0 {
+            log!("Cleaned up {} old downloaded requests", cleaned_count);
+        }
+    }
+}
 
 async fn shutdown_signal()  {
     match signal::ctrl_c().await {
@@ -31,6 +110,9 @@ async fn main() {
     };
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(App);
+
+    // Start the cleanup background task
+    tokio::spawn(cleanup_old_downloads(app_state.clone()));
 
     let app = Router::new()
         .leptos_routes(&app_state, routes, {
