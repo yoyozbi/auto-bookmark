@@ -1,0 +1,11 @@
+meta {
+  name: Get generation status
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/upload/{{requestId}}/status
+  body: none
+  auth: inherit
+}

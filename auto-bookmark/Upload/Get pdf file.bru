@@ -1,0 +1,11 @@
+meta {
+  name: Get pdf file
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/upload/{{requestId}}/result
+  body: none
+  auth: inherit
+}

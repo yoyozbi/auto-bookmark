@@ -5,15 +5,11 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/upload/089541c3-1fc3-4bdd-90a2-8f22bdf3eb62/file
+  url: {{baseUrl}}/api/upload/{{requestId}}/file
   body: multipartForm
   auth: inherit
 }
 
 body:multipart-form {
-  file: @file(/home/yohan/Downloads/Hunger games.pdf)
-}
-
-vars:pre-request {
-  requestId: 43f4210b-05a0-4676-989b-da58f3913887
+  file: @file(/home/yohan/Downloads/bookmarks/Hunger games - 3.pdf)
 }
