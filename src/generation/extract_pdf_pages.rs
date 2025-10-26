@@ -1,6 +1,5 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tokio::task::JoinSet;
-use uuid::Uuid;
 
 #[cfg(feature = "ssr")]
 use lopdf::Document;
@@ -86,7 +85,6 @@ async fn process_pdf_file<P: AsRef<Path>>(
 /// Process multiple PDF files and create page pairs for each
 pub async fn split_pages_from_input_pdfs(
     pdf_files: &[String],
-    request_id: Uuid,
 ) -> Result<Vec<PdfPagePair>, ExtractionError> {
     if pdf_files.is_empty() {
         return Ok(Vec::new());

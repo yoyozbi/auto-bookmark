@@ -1,58 +1,52 @@
-# Get started with a build env with Rust nightly
-FROM rustlang/rust:nightly-alpine AS builder
-
-# Install system dependencies
-RUN apk update && \
-    apk add --no-cache bash curl npm libc-dev binaryen
-
-# Install sass globally
-RUN npm install -g sass
-
-# Install cargo-leptos
-RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/leptos-rs/cargo-leptos/releases/download/v0.2.42/cargo-leptos-installer.sh | sh
-
-# Add the WASM target
-RUN rustup target add wasm32-unknown-unknown
-
-WORKDIR /work
-
-# Copy dependency files first for layer caching
-COPY Cargo.toml Cargo.lock ./
-
-# Create dummy source files to satisfy cargo build for dependencies
-RUN mkdir -p src && \
-    echo "fn main() {}" > src/main.rs && \
-    echo "// dummy lib" > src/lib.rs
-
-# Build dependencies only (this layer will be cached until Cargo.toml/Cargo.lock changes)
-RUN cargo build --release --bin auto-bookmark --features ssr
-RUN cargo build --release --lib --target wasm32-unknown-unknown
-
-# Remove dummy source files
-RUN rm -rf src
-
-# Copy the actual source code and other necessary files
-COPY src/ ./src/
-COPY style/ ./style/
-COPY public/ ./public/
-
-# Build the actual application (only this step runs when source code changes)
-RUN cargo leptos build --release -vv
-
-# Runtime stage
-FROM rustlang/rust:nightly-alpine AS runner
+# Multi-stage build using pre-built binaries from GitHub Actions
+FROM alpine:3.19 AS runner
 
 WORKDIR /app
 
-# Copy built artifacts from builder stage
-COPY --from=builder /work/target/release/auto-bookmark /app/
-COPY --from=builder /work/target/site /app/site
-COPY --from=builder /work/Cargo.toml /app/
+# Install runtime dependencies
+RUN apk update && \
+    apk add --no-cache ca-certificates
+
+# Get the target architecture for the binary
+ARG TARGETPLATFORM
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") export ARCH=amd64 ;; \
+        "linux/arm64") export ARCH=arm64 ;; \
+        *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac && \
+    echo "ARCH=$ARCH" >> /etc/environment
+
+# Copy pre-built artifacts based on architecture
+ARG TARGETPLATFORM
+COPY dist/linux/amd64/auto-bookmark /tmp/auto-bookmark-amd64
+COPY dist/linux/arm64/auto-bookmark /tmp/auto-bookmark-arm64
+COPY dist/site ./site
+COPY Cargo.toml ./
+
+# Select the correct binary for the target architecture and clean up
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") \
+            mv /tmp/auto-bookmark-amd64 /app/auto-bookmark && \
+            rm -f /tmp/auto-bookmark-arm64 ;; \
+        "linux/arm64") \
+            mv /tmp/auto-bookmark-arm64 /app/auto-bookmark && \
+            rm -f /tmp/auto-bookmark-amd64 ;; \
+    esac && \
+    chmod +x /app/auto-bookmark
 
 # Set environment variables
 ENV RUST_LOG="info"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT=./site
+
+# Create a non-root user for security
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup
+
+# Change ownership of the app directory
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 EXPOSE 8080
 

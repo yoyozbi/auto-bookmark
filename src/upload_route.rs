@@ -18,7 +18,6 @@ cfg_if! {
         use tokio::fs;
 
         use axum::response::IntoResponse;
-        use std::time::{Duration, SystemTime};
 
         #[axum::debug_handler]
         pub async fn create_upload_request(

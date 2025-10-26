@@ -1,7 +1,8 @@
-# Build artifacts
+# Build artifacts (keep only dist/ directory with pre-built binaries)
 target/
 out/
 output/
+!dist/
 
 # Development and temporary files
 uploads/
@@ -24,6 +25,11 @@ flake.lock
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
 USAGE_EXAMPLES.md
+
+# Source code (using pre-built binaries instead)
+src/
+style/
+public/
 
 # Docker files (don't copy Dockerfile into itself)
 Dockerfile

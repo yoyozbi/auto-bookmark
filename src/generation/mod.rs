@@ -92,7 +92,7 @@ impl GenerationRequest {
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         use crate::generation::generate_pdf::{GridConfig, PageMargins, generate_pdf_with_config};
 
-        let page_pairs = split_pages_from_input_pdfs(&self.input_files, self.id).await;
+        let page_pairs = split_pages_from_input_pdfs(&self.input_files).await;
         let page_pairs = match page_pairs {
             Ok(pairs) => pairs,
             Err(_e) => {
