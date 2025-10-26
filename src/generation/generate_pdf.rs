@@ -121,7 +121,7 @@ fn generate_typst_content(
             );
         }
 
-        // For recto (front) pages: apply positive offsets as left/top padding 
+        // For recto (front) pages: apply positive offsets as left/top padding
         // Positive = shift front pages right/down, Negative = no padding on front
         let mut pad_left_value = if config.left_offset.is_sign_positive() {
             config.left_offset.to_string()
@@ -167,7 +167,7 @@ fn generate_typst_content(
         }
 
         // For verso (back) pages: apply negative offsets as left/top padding
-        // Negative = shift back pages right/down (front pages appear left/up), Positive = no padding on back  
+        // Negative = shift back pages right/down (front pages appear left/up), Positive = no padding on back
         pad_left_value = if config.left_offset.is_sign_negative() {
             config.left_offset.abs().to_string()
         } else {
