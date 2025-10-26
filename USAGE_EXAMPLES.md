@@ -1,29 +1,48 @@
 # Usage Examples
 
-This file contains clean, practical examples of how to use the PDF extraction and bookmark generation functionality.
+This file contains clean, practical examples of how to use the PDF processing and bookmark generation functionality using Typst 0.14+ direct PDF embedding.
 
 ## Single PDF Processing
 
-### Extract and Generate Bookmark
+### Generate Bookmark from PDF
 ```rust
-use auto_bookmark::generation::pdf_workflow::pdf_to_bookmark_simple;
+use auto_bookmark::generation::generate_pdf::{create_pdf_page_pairs, generate_pdf_with_config, PageMargins, GridConfig};
+use std::path::Path;
 
 fn process_single_pdf() -> Result<(), Box<dyn std::error::Error>> {
-    let result = pdf_to_bookmark_simple("input/document.pdf", "output/bookmark.pdf")?;
-    println!("Success: {}", result.summary());
+    let pdf_path = Path::new("input/document.pdf");
+    let page_count = 8; // Must be even for recto-verso pairs
+    
+    // Create page pairs using direct PDF embedding
+    let page_pairs = create_pdf_page_pairs(pdf_path, page_count)?;
+    
+    // Generate bookmark PDF
+    let pdf_data = generate_pdf_with_config(
+        &page_pairs,
+        &PageMargins::default(),
+        &GridConfig::default()
+    )?;
+    
+    std::fs::write("output/bookmark.pdf", pdf_data)?;
+    println!("Success: Generated bookmark PDF with {} page pairs", page_pairs.len());
     Ok(())
 }
 ```
 
-### Extract Images Only
+### Create Page Pairs from PDF
 ```rust
-use auto_bookmark::generation::extract_pdf_images::extract_recto_verso_pairs_simple;
+use auto_bookmark::generation::generate_pdf::{create_pdf_page_pairs, PdfPagePair};
+use std::path::Path;
 
-fn extract_only() -> Result<(), Box<dyn std::error::Error>> {
-    let pairs = extract_recto_verso_pairs_simple("input/document.pdf")?;
+fn create_pairs_only() -> Result<(), Box<dyn std::error::Error>> {
+    let pdf_path = Path::new("input/document.pdf");
+    let page_count = 6;
+    
+    let pairs = create_pdf_page_pairs(pdf_path, page_count)?;
     
     for (i, pair) in pairs.iter().enumerate() {
-        println!("Pair {}: {} -> {}", i + 1, pair.recto_path, pair.verso_path);
+        println!("Pair {}: PDF pages {} (recto) -> {} (verso)", 
+                i + 1, pair.recto_page, pair.verso_page);
     }
     Ok(())
 }
@@ -181,21 +200,14 @@ fn process_directory(dir_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Constants Configuration
+## Configuration Notes
 
-The system uses these constants (defined in `extract_pdf_images.rs`):
+The system uses direct PDF embedding, so no intermediate images are generated. Key configuration:
 
-```rust
-const OUTPUT_DIR: &str = "extracted_images";  // Where images are saved
-const DPI: u32 = 300;                        // Image quality
-const IMAGE_EXTENSION: &str = "png";          // Always PNG format
-```
-
-Images are saved with names like:
-- `document_page001_recto.png`
-- `document_page002_verso.png`
-- `document_page003_recto.png`
-- `document_page004_verso.png`
+- **Page Pairing**: Pages are automatically paired as (1,2), (3,4), (5,6), etc.
+- **PDF Storage**: Temporary PDFs are stored in `output/{request_id}/` directories
+- **Typst Embedding**: Uses `image("file.pdf", page: N)` syntax for direct embedding
+- **Cleanup**: Original uploaded PDFs and temporary copies are removed after processing
 
 ## Running Examples
 
@@ -208,6 +220,6 @@ cargo build --features ssr
 # Run with PDF processing support
 cargo run --features ssr
 
-# Without ssr feature, uses fallback implementations
+# Without ssr feature, PDF processing is not available
 cargo run
 ```

@@ -1,9 +1,6 @@
 #[cfg(feature = "ssr")]
 use extract_pdf_pages::split_pages_from_input_pdfs;
 
-#[cfg(feature = "ssr")]
-use itertools::Itertools;
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -12,9 +9,6 @@ mod extract_pdf_pages;
 
 #[cfg(feature = "ssr")]
 mod generate_pdf;
-
-#[cfg(feature = "ssr")]
-mod pdf_wrapper;
 
 #[cfg(feature = "ssr")]
 pub mod validate_margins;
@@ -36,13 +30,6 @@ pub struct GenerationRequest {
     status: GenerationStatus,
     #[cfg(feature = "ssr")]
     generated_data: Option<Vec<u8>>,
-}
-
-#[cfg(feature = "ssr")]
-#[derive(Clone, Debug)]
-pub(crate) struct RectoVersoImagePair {
-    pub recto_path: String,
-    pub verso_path: String,
 }
 
 impl Default for GenerationRequest {
@@ -88,12 +75,12 @@ impl GenerationRequest {
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         use crate::generation::generate_pdf::{GridConfig, PageMargins, generate_pdf_with_config};
 
-        let image_pairs = split_pages_from_input_pdfs(&self.input_files, self.id).await;
-        let image_pairs = match image_pairs {
+        let page_pairs = split_pages_from_input_pdfs(&self.input_files, self.id).await;
+        let page_pairs = match page_pairs {
             Ok(pairs) => pairs,
             Err(_e) => {
                 self.delete_files(None).await?;
-                return Err(format!("Failed to create image pairs: {}", _e).into());
+                return Err(format!("Failed to create page pairs: {}", _e).into());
             }
         };
         let margins_config = PageMargins::default();
@@ -102,14 +89,17 @@ impl GenerationRequest {
             top_offset: self.top_offset,
             ..Default::default()
         };
-        let pdf = generate_pdf_with_config(&image_pairs, &margins_config, &grid_config);
+        let pdf = generate_pdf_with_config(&page_pairs, &margins_config, &grid_config);
 
-        let images = image_pairs
+        // Clean up the copied PDF files
+        let pdf_files: Vec<String> = page_pairs
             .iter()
-            .flat_map(|f| vec![f.recto_path.clone(), f.verso_path.clone()])
-            .collect_vec();
+            .map(|pair| pair.pdf_path.clone())
+            .collect::<std::collections::HashSet<_>>() // Remove duplicates
+            .into_iter()
+            .collect();
 
-        self.delete_files(Some(images)).await?;
+        self.delete_files(Some(pdf_files)).await?;
 
         match pdf {
             Ok(data) => Ok(data),

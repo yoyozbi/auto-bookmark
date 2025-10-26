@@ -1,12 +1,10 @@
 # Auto-bookmark
 ![CI](https://github.com/yoyozbi/auto-bookmark/worflows/CI/badge.svg)
 
-A simple python script to generate typst code from pdf bookmarks.
-The bookmarks used takes 5cmX15cm approximately in the pdf page.
-Use it at your own risk if you're bookmarks are not this size.
+A Rust web application built with Leptos that generates bookmark PDFs from uploaded PDF files.
+The bookmarks are formatted to approximately 5cm x 15cm dimensions.
 
-To be able to use this script a simple flask server is used to upload the pdf file and serve the resulting pdf.
-It uses flask_simplelogin to protect the server with a password.
+**New in this version**: Uses Typst 0.14+ direct PDF embedding feature instead of intermediate image extraction for improved performance and quality.
 
 # Usage
 Use the docker image to run the server. The server will be available at http://localhost:5000 (The default username is `admin`)

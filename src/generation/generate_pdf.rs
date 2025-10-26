@@ -1,6 +1,5 @@
+use std::path::Path;
 use typst_as_lib::TypstEngine;
-
-use crate::generation::RectoVersoImagePair;
 
 const PAGE_DEFINITION: &str = r#"#set page(margin: (
  top: {top}cm,
@@ -25,9 +24,9 @@ const GRID_DEFINITION: &str = r#"
 )]
 "#;
 
-const IMAGE_CELL: &str = r#"image("{path}", width: {width}cm),
+const PDF_PAGE_CELL: &str = r#"image("{pdf_path}", width: {width}cm, page: {page}),
 "#;
-const ROTATED_IMAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{path}", width: {width}cm), reflow: true), colspan: 3),
+const ROTATED_PDF_PAGE_CELL: &str = r#"grid.cell(rotate({angle}deg, image("{pdf_path}", width: {width}cm, page: {page}), reflow: true), colspan: 3),
 "#;
 
 #[derive(Clone, Debug)]
@@ -72,8 +71,15 @@ impl Default for GridConfig {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct PdfPagePair {
+    pub pdf_path: String,
+    pub recto_page: usize,
+    pub verso_page: usize,
+}
+
 fn generate_typst_content(
-    images: &[RectoVersoImagePair],
+    pages: &[PdfPagePair],
     margins: &PageMargins,
     config: &GridConfig,
 ) -> String {
@@ -86,29 +92,31 @@ fn generate_typst_content(
         .replace("{right}", &margins.right.to_string());
     content.push_str(&page_def);
 
-    if images.is_empty() {
-        content.push_str("No images to display.\n");
+    if pages.is_empty() {
+        content.push_str("No pages to display.\n");
         return content;
     }
 
-    // Chunk images into groups of 4 (3 normal + 1 rotated)
-    for chunk in images.chunks(4) {
+    // Chunk pages into groups of 4 (3 normal + 1 rotated)
+    for chunk in pages.chunks(4) {
         // RECTO
         let mut recto_cells = String::new();
-        // First row: up to 3 images
-        for img in chunk.iter().take(3) {
+        // First row: up to 3 pages
+        for page_pair in chunk.iter().take(3) {
             recto_cells.push_str(
-                &IMAGE_CELL
-                    .replace("{path}", &img.recto_path)
+                &PDF_PAGE_CELL
+                    .replace("{pdf_path}", &page_pair.pdf_path)
+                    .replace("{page}", &page_pair.recto_page.to_string())
                     .replace("{width}", &config.image_width.to_string()),
             );
         }
-        // Second row: rotated image if present
-        if let Some(img) = chunk.get(3) {
+        // Second row: rotated page if present
+        if let Some(page_pair) = chunk.get(3) {
             recto_cells.push_str(
-                &ROTATED_IMAGE_CELL
+                &ROTATED_PDF_PAGE_CELL
                     .replace("{angle}", &config.rotation_angle.to_string())
-                    .replace("{path}", &img.recto_path)
+                    .replace("{pdf_path}", &page_pair.pdf_path)
+                    .replace("{page}", &page_pair.recto_page.to_string())
                     .replace("{width}", &config.image_width.to_string()),
             );
         }
@@ -136,20 +144,22 @@ fn generate_typst_content(
 
         // VERSO
         let mut verso_cells = String::new();
-        // First row: up to 3 images, reversed order
-        for img in chunk.iter().take(3).rev() {
+        // First row: up to 3 pages, reversed order
+        for page_pair in chunk.iter().take(3).rev() {
             verso_cells.push_str(
-                &IMAGE_CELL
-                    .replace("{path}", &img.verso_path)
+                &PDF_PAGE_CELL
+                    .replace("{pdf_path}", &page_pair.pdf_path)
+                    .replace("{page}", &page_pair.verso_page.to_string())
                     .replace("{width}", &config.image_width.to_string()),
             );
         }
-        // Second row: rotated image if present (negative angle)
-        if let Some(img) = chunk.get(3) {
+        // Second row: rotated page if present (negative angle)
+        if let Some(page_pair) = chunk.get(3) {
             verso_cells.push_str(
-                &ROTATED_IMAGE_CELL
+                &ROTATED_PDF_PAGE_CELL
                     .replace("{angle}", &format!("-{}", config.rotation_angle))
-                    .replace("{path}", &img.verso_path)
+                    .replace("{pdf_path}", &page_pair.pdf_path)
+                    .replace("{page}", &page_pair.verso_page.to_string())
                     .replace("{width}", &config.image_width.to_string()),
             );
         }
@@ -180,15 +190,15 @@ fn generate_typst_content(
 }
 
 pub fn generate_pdf_with_config(
-    images: &[RectoVersoImagePair],
+    pages: &[PdfPagePair],
     margins: &PageMargins,
     config: &GridConfig,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Sync + Send>> {
-    if images.is_empty() {
-        return Err("No images provided for PDF generation".into());
+    if pages.is_empty() {
+        return Err("No pages provided for PDF generation".into());
     }
 
-    let typst_content = generate_typst_content(images, margins, config);
+    let typst_content = generate_typst_content(pages, margins, config);
 
     let template = TypstEngine::builder()
         .main_file(typst_content)
@@ -208,6 +218,33 @@ pub fn generate_pdf_with_config(
     Ok(pdf_data)
 }
 
+/// Creates PdfPagePair instances from a PDF file path with the given number of pages
+/// Pages are paired as: (1,2), (3,4), (5,6), etc.
+pub fn create_pdf_page_pairs(
+    pdf_path: &Path,
+    page_count: usize,
+) -> Result<Vec<PdfPagePair>, Box<dyn std::error::Error + Sync + Send>> {
+    if !page_count.is_multiple_of(2) {
+        return Err(format!(
+            "PDF has odd number of pages ({}). Expected even number for recto-verso pairs.",
+            page_count
+        )
+        .into());
+    }
+
+    let pdf_path_str = pdf_path.to_string_lossy().to_string();
+    let pairs = (0..page_count)
+        .step_by(2)
+        .map(|i| PdfPagePair {
+            pdf_path: pdf_path_str.clone(),
+            recto_page: i + 1, // Typst uses 1-based page numbering
+            verso_page: i + 2,
+        })
+        .collect();
+
+    Ok(pairs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,22 +252,26 @@ mod tests {
 
     #[test]
     fn test_generated_content_should_be_correct() {
-        let images = vec![
-            RectoVersoImagePair {
-                recto_path: "recto/devils4.png".to_string(),
-                verso_path: "verso/devils4.png".to_string(),
+        let pages = vec![
+            PdfPagePair {
+                pdf_path: "document.pdf".to_string(),
+                recto_page: 1,
+                verso_page: 2,
             },
-            RectoVersoImagePair {
-                recto_path: "recto/uglylove.png".to_string(),
-                verso_path: "verso/uglylove.png".to_string(),
+            PdfPagePair {
+                pdf_path: "document.pdf".to_string(),
+                recto_page: 3,
+                verso_page: 4,
             },
-            RectoVersoImagePair {
-                recto_path: "recto/yoyo.png".to_string(),
-                verso_path: "verso/yoyo.png".to_string(),
+            PdfPagePair {
+                pdf_path: "document.pdf".to_string(),
+                recto_page: 5,
+                verso_page: 6,
             },
-            RectoVersoImagePair {
-                recto_path: "recto/dragon.png".to_string(),
-                verso_path: "verso/dragon.png".to_string(),
+            PdfPagePair {
+                pdf_path: "document.pdf".to_string(),
+                recto_page: 7,
+                verso_page: 8,
             },
         ];
         const EXPECTED: &str = r#"#set page(margin: (
@@ -250,10 +291,10 @@ mod tests {
   align: center,
 
 
-image("recto/devils4.png", width: 5.5cm),
-image("recto/uglylove.png", width: 5.5cm),
-image("recto/yoyo.png", width: 5.5cm),
-grid.cell(rotate(75deg, image("recto/dragon.png", width: 5.5cm), reflow: true), colspan: 3),
+image("document.pdf", width: 5.5cm, page: 1),
+image("document.pdf", width: 5.5cm, page: 3),
+image("document.pdf", width: 5.5cm, page: 5),
+grid.cell(rotate(75deg, image("document.pdf", width: 5.5cm, page: 7), reflow: true), colspan: 3),
 
 )]
 
@@ -266,10 +307,10 @@ grid.cell(rotate(75deg, image("recto/dragon.png", width: 5.5cm), reflow: true), 
   align: center,
 
 
-image("verso/yoyo.png", width: 5.5cm),
-image("verso/uglylove.png", width: 5.5cm),
-image("verso/devils4.png", width: 5.5cm),
-grid.cell(rotate(-75deg, image("verso/dragon.png", width: 5.5cm), reflow: true), colspan: 3),
+image("document.pdf", width: 5.5cm, page: 6),
+image("document.pdf", width: 5.5cm, page: 4),
+image("document.pdf", width: 5.5cm, page: 2),
+grid.cell(rotate(-75deg, image("document.pdf", width: 5.5cm, page: 8), reflow: true), colspan: 3),
 
 )]
 "#;
@@ -277,7 +318,7 @@ grid.cell(rotate(-75deg, image("verso/dragon.png", width: 5.5cm), reflow: true),
         let margins = PageMargins::default();
         let config = GridConfig::default();
 
-        let content = generate_typst_content(&images, &margins, &config);
+        let content = generate_typst_content(&pages, &margins, &config);
 
         assert_eq!(content, EXPECTED);
     }
