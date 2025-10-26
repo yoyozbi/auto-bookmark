@@ -151,49 +151,61 @@ mod tests {
     #[test]
     fn test_get_pdf_page_count_basic() {
         use lopdf::{Document, Object, dictionary};
-        
+
         let temp_dir = TempDir::new().unwrap();
         let pdf_path = temp_dir.path().join("test.pdf");
-        
+
         // Create a simple PDF with 2 pages using lopdf
         let mut doc = Document::with_version("1.4");
-        
+
         // Add two pages to the document
         let pages_id = doc.new_object_id();
         let page1_id = doc.new_object_id();
         let page2_id = doc.new_object_id();
-        
+
         // Create pages object
-        doc.objects.insert(pages_id, Object::Dictionary(dictionary! {
-            "Type" => "Pages",
-            "Kids" => vec![Object::Reference(page1_id), Object::Reference(page2_id)],
-            "Count" => 2,
-        }));
-        
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Reference(page1_id), Object::Reference(page2_id)],
+                "Count" => 2,
+            }),
+        );
+
         // Create page 1
-        doc.objects.insert(page1_id, Object::Dictionary(dictionary! {
-            "Type" => "Page",
-            "Parent" => Object::Reference(pages_id),
-            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-        }));
-        
+        doc.objects.insert(
+            page1_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Page",
+                "Parent" => Object::Reference(pages_id),
+                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            }),
+        );
+
         // Create page 2
-        doc.objects.insert(page2_id, Object::Dictionary(dictionary! {
-            "Type" => "Page",
-            "Parent" => Object::Reference(pages_id),
-            "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-        }));
-        
+        doc.objects.insert(
+            page2_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Page",
+                "Parent" => Object::Reference(pages_id),
+                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
+            }),
+        );
+
         // Create catalog
         let catalog_id = doc.new_object_id();
-        doc.objects.insert(catalog_id, Object::Dictionary(dictionary! {
-            "Type" => "Catalog",
-            "Pages" => Object::Reference(pages_id),
-        }));
-        
+        doc.objects.insert(
+            catalog_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Pages" => Object::Reference(pages_id),
+            }),
+        );
+
         // Set catalog as root
         doc.trailer.set("Root", Object::Reference(catalog_id));
-        
+
         // Save the PDF
         doc.save(&pdf_path).unwrap();
 
