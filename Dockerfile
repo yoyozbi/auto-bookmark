@@ -38,6 +38,8 @@ RUN case "$TARGETPLATFORM" in \
 ENV RUST_LOG="info"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_SITE_ROOT=./site
+ENV LEPTOS_OUTPUT_NAME="auto-bookmark"
+ENV LEPTOS_SITE_PKG_DIR="pkg"
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S appgroup && \

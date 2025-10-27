@@ -102,7 +102,7 @@ async fn shutdown_signal()  {
 
 #[tokio::main]
 async fn main() {
-    let conf = get_configuration(None).unwrap();
+    let conf = get_configuration(Some("Cargo.toml")).unwrap();
     let addr = conf.leptos_options.site_addr;
     let app_state = AppState {
         leptos_options: conf.leptos_options,
