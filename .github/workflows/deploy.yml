@@ -119,12 +119,19 @@ jobs:
           cp ./artifacts/auto-bookmark-amd64/auto-bookmark ./dist/linux/amd64/
           cp ./artifacts/auto-bookmark-arm64/auto-bookmark ./dist/linux/arm64/
 
-          # Copy site assets
-          cp -r ./artifacts/leptos-site/* ./dist/site/
+          # Copy site assets (preserve directory structure and file integrity)
+          if [ -d "./artifacts/leptos-site" ]; then
+            cp -r ./artifacts/leptos-site/. ./dist/site/
+          fi
 
           # Make binaries executable
           chmod +x ./dist/linux/amd64/auto-bookmark
           chmod +x ./dist/linux/arm64/auto-bookmark
+
+          # Verify WASM files exist and are not corrupted
+          echo "Checking for WASM files:"
+          find ./dist/site -name "*.wasm" -type f -exec ls -la {} \;
+          find ./dist/site -name "*.wasm" -type f -exec file {} \;
 
           ls -la ./dist/linux/*/
 

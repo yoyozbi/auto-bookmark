@@ -6,7 +6,7 @@ if #[cfg(feature = "ssr")] {
         body::Body,
         extract::State,
         response::IntoResponse,
-        http::{Request, Response, StatusCode, Uri},
+        http::{Request, Response, StatusCode, Uri, HeaderMap, HeaderValue},
     };
     use axum::response::Response as AxumResponse;
     use tower_http::services::ServeDir;
@@ -40,8 +40,17 @@ if #[cfg(feature = "ssr")] {
         match ServeDir::new(root).oneshot(req).await {
             Ok(res) => {
                 // Convert the response body to axum::body::Body
-                let (parts, body) = res.into_parts();
+                let (mut parts, body) = res.into_parts();
                 let body = Body::new(body);
+                
+                // Set correct MIME type for WASM files
+                if uri.path().ends_with(".wasm") {
+                    parts.headers.insert(
+                        axum::http::header::CONTENT_TYPE,
+                        HeaderValue::from_static("application/wasm")
+                    );
+                }
+                
                 Ok(Response::from_parts(parts, body))
             },
             Err(err) => Err((
