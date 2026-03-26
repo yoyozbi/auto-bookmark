@@ -51,6 +51,25 @@ cfg_if! {
             Ok(Json(request))
         }
 
+        fn validate_uploaded_pdf(data: &[u8]) -> Result<(), (StatusCode, String)> {
+            let doc = lopdf::Document::load_mem(data)
+                .map_err(|_| (StatusCode::UNPROCESSABLE_ENTITY, "File is not a valid PDF".to_string()))?;
+
+            let page_count = doc.get_pages().len();
+            if page_count % 2 != 0 {
+                return Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    format!(
+                        "PDF has {} page{}. Expected an even number of pages for recto-verso printing.",
+                        page_count,
+                        if page_count == 1 { "" } else { "s" }
+                    ),
+                ));
+            }
+
+            Ok(())
+        }
+
         // Handler for multiple file upload
         #[axum::debug_handler]
         pub async fn upload_file(
@@ -64,7 +83,7 @@ cfg_if! {
             let request = requests.iter_mut().find(|f| f.id == request_id);
 
             if request.is_none() {
-                return Err(StatusCode::NOT_FOUND);
+                return Err((StatusCode::NOT_FOUND, String::new()));
             }
 
             let mut file_path = String::new();
@@ -73,12 +92,12 @@ cfg_if! {
             // Create uploads directory if it doesn't exist
             fs::create_dir_all("uploads").await.map_err(|e| {
                 println!("Error {}", e);
-                StatusCode::INTERNAL_SERVER_ERROR
+                (StatusCode::INTERNAL_SERVER_ERROR, String::new())
             })?;
 
             while let Some(field) = multipart.next_field().await.map_err(|e| {
                 println!("Error next field: {:#?}", e.source());
-                StatusCode::BAD_REQUEST
+                (StatusCode::BAD_REQUEST, String::new())
             })? {
                 if field.name() != Some("file") {
                     continue;
@@ -105,6 +124,7 @@ cfg_if! {
 
                 match field.bytes().await {
                     Ok(data) => {
+                        validate_uploaded_pdf(&data)?;
 
                         match fs::write(&file_path_owned, &data).await {
                             Ok(_) => {
@@ -126,7 +146,7 @@ cfg_if! {
 
             if failed {
                 println!("File upload failed for request: {}", request_id);
-                return Err(StatusCode::BAD_REQUEST);
+                return Err((StatusCode::BAD_REQUEST, String::new()));
             }
 
             let request = request.unwrap();

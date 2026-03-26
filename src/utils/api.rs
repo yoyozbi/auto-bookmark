@@ -67,7 +67,15 @@ impl ApiClient {
                 console_log(&format!("Successfully uploaded file: {}", file.name()));
                 Ok(())
             }
-            _ => Err(format!("Failed to upload file: {}", file.name())),
+            Ok(response) => {
+                let body = response.text().await.unwrap_or_default();
+                if body.is_empty() {
+                    Err(format!("Failed to upload file: {}", file.name()))
+                } else {
+                    Err(format!("{}: {}", file.name(), body))
+                }
+            }
+            Err(_) => Err(format!("Failed to upload file: {}", file.name())),
         }
     }
 

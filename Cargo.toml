@@ -16,7 +16,7 @@ leptos_axum = { version = "0.8.6", optional = true }
 leptos_meta = { version = "0.8.5" }
 tokio = { version = "1", features = ["rt-multi-thread", "signal"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
-wasm-bindgen = { version = "=0.2.100", optional = true }
+wasm-bindgen = { version = "=0.2.106", optional = true }
 web-sys = { version = "0.3.77", features = [
   "FileList",
   "File",

@@ -27,10 +27,19 @@ if #[cfg(feature = "ssr")] {
 
         if res.status() == StatusCode::OK {
             res.into_response()
-        } else{
+        } else if looks_like_asset(uri.path()) {
+            StatusCode::NOT_FOUND.into_response()
+        } else {
             let handler = leptos_axum::render_app_to_stream(NotFound);
             handler(req).await.into_response()
         }
+    }
+
+    fn looks_like_asset(path: &str) -> bool {
+        matches!(
+            std::path::Path::new(path).extension().and_then(|e| e.to_str()),
+            Some("wasm" | "js" | "css" | "ico" | "png" | "jpg" | "svg" | "woff" | "woff2" | "ttf")
+        )
     }
 
     async fn get_static_file(uri: Uri, root: &str) -> Result<Response<Body>, (StatusCode, String)> {

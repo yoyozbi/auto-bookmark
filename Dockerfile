@@ -20,7 +20,7 @@ RUN case "$TARGETPLATFORM" in \
 ARG TARGETPLATFORM
 COPY dist/linux/amd64/auto-bookmark /tmp/auto-bookmark-amd64
 COPY dist/linux/arm64/auto-bookmark /tmp/auto-bookmark-arm64
-COPY dist/site ./site
+COPY dist/site ./target/site
 COPY Cargo.toml ./
 
 # Select the correct binary for the target architecture and clean up
@@ -37,9 +37,7 @@ RUN case "$TARGETPLATFORM" in \
 # Set environment variables
 ENV RUST_LOG="info"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
-ENV LEPTOS_SITE_ROOT=./site
 ENV LEPTOS_OUTPUT_NAME="auto-bookmark"
-ENV LEPTOS_SITE_PKG_DIR="pkg"
 
 # Create a non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
