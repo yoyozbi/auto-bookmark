@@ -51,7 +51,7 @@ if #[cfg(feature = "ssr")] {
                 // Convert the response body to axum::body::Body
                 let (mut parts, body) = res.into_parts();
                 let body = Body::new(body);
-                
+
                 // Set correct MIME type for WASM files
                 if uri.path().ends_with(".wasm") {
                     parts.headers.insert(
@@ -59,7 +59,7 @@ if #[cfg(feature = "ssr")] {
                         HeaderValue::from_static("application/wasm")
                     );
                 }
-                
+
                 Ok(Response::from_parts(parts, body))
             },
             Err(err) => Err((
