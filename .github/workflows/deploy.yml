@@ -65,6 +65,8 @@ jobs:
           cache-on-failure: true
 
       - name: Build server binary
+        env:
+          LEPTOS_OUTPUT_NAME: auto-bookmark
         run: |
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             export CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc
