@@ -7,16 +7,15 @@ The bookmarks are formatted to approximately 5cm x 15cm dimensions.
 **New in this version**: Uses Typst 0.14+ direct PDF embedding feature instead of intermediate image extraction for improved performance and quality.
 
 # Usage
-Use the docker image to run the server. The server will be available at http://localhost:5000 (The default username is `admin`)
+Use the docker image to run the server. The server will be available at http://localhost:8080.
+
 ```bash
-$ docker run -p 5000:5000 -e ADMIN_PASSWORD=<your-hashed-password> -e SECRET_KEY=<random-key> -e ALLOWED_HOSTS=* -d --name auto-bookmark auto-bookmark
+docker run -p 8080:8080 -d --name auto-bookmark ghcr.io/yoyozbi/auto-bookmark
 ```
-Env variables:
-- `ADMIN_PASSWORD`: The password to access the server (the username will be admin) you need to use `generate_password_hash` from `werkzeug.security` to generate the hash.
-- `PWD_FILE`: The file to read the password from. If this is set, the `PASSWORD` variable will be ignored. The file should contain a `username:password` combo, one combo per line.
-- `SECRET_KEY`: The secret key to use for the flask app. This is used to sign the session cookie.
-- `SECRET_KEY_FILE`: The file to read the secret key from. If this is set, the `SECRET_KEY` variable will be ignored.
-- `ALLOWED_HOSTS`: The allowed hosts for the server. This is used to set the `Access-Control-Allow-Origin` header. If this is not set, the header will default to `*` (This is insecure).
+
+Environment variables:
+- `LEPTOS_SITE_ADDR`: Address and port the server listens on (default: `0.0.0.0:8080`)
+- `RUST_LOG`: Log level (default: `info`)
 
 ## Development
 
