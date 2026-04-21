@@ -45,7 +45,11 @@ impl std::fmt::Display for ExtractionError {
             ExtractionError::UnreadablePageDimensions(page_num) => {
                 write!(f, "Could not read dimensions of page {}", page_num)
             }
-            ExtractionError::WrongPageSize { page_num, width_cm, height_cm } => {
+            ExtractionError::WrongPageSize {
+                page_num,
+                width_cm,
+                height_cm,
+            } => {
                 write!(
                     f,
                     "Page {} is {:.2}cm × {:.2}cm. Expected 5cm × 15cm bookmark size.",
@@ -53,7 +57,11 @@ impl std::fmt::Display for ExtractionError {
                 )
             }
             ExtractionError::InconsistentPageSizes {
-                page_num, width_cm, height_cm, ref_width_cm, ref_height_cm,
+                page_num,
+                width_cm,
+                height_cm,
+                ref_width_cm,
+                ref_height_cm,
             } => {
                 write!(
                     f,
