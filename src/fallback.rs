@@ -6,7 +6,7 @@ if #[cfg(feature = "ssr")] {
         body::Body,
         extract::State,
         response::IntoResponse,
-        http::{Request, Response, StatusCode, Uri, HeaderMap, HeaderValue},
+        http::{Request, Response, StatusCode, Uri, HeaderValue},
     };
     use axum::response::Response as AxumResponse;
     use tower_http::services::ServeDir;

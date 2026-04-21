@@ -1,11 +1,5 @@
-#[cfg(feature = "ssr")]
-use extract_pdf_pages::split_pages_from_input_pdfs;
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-#[cfg(feature = "ssr")]
-mod extract_pdf_pages;
 
 #[cfg(feature = "ssr")]
 mod generate_pdf;
@@ -90,29 +84,33 @@ impl GenerationRequest {
     }
 
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        use crate::generation::generate_pdf::{GridConfig, PageMargins, generate_pdf_with_config};
+        use crate::generation::generate_pdf::{GridConfig, PageMargins, PdfPagePair, generate_pdf_with_config};
 
-        let page_pairs = split_pages_from_input_pdfs(&self.input_files).await;
-        let page_pairs = match page_pairs {
-            Ok(pairs) => pairs,
-            Err(_e) => {
-                self.delete_files().await?;
-                return Err(format!("Failed to create page pairs: {}", _e).into());
-            }
-        };
+        if self.input_files.is_empty() {
+            return Err("No files provided".into());
+        }
+
+        let page_pairs: Vec<PdfPagePair> = self.input_files.iter()
+            .map(|path| PdfPagePair {
+                pdf_path: path.clone(),
+                recto_page: 1,
+                verso_page: 2,
+            })
+            .collect();
+
         let margins_config = PageMargins::default();
         let grid_config = GridConfig {
             left_offset: self.left_offset,
             top_offset: self.top_offset,
             ..Default::default()
         };
-        let pdf = generate_pdf_with_config(&page_pairs, &margins_config, &grid_config);
+        let result = generate_pdf_with_config(&page_pairs, &margins_config, &grid_config);
 
         self.delete_files().await?;
 
-        match pdf {
+        match result {
             Ok(data) => Ok(data),
-            Err(_e) => Err(format!("Failed to generate PDF: {}", _e).into()),
+            Err(e) => Err(format!("Failed to generate PDF: {}", e).into()),
         }
     }
 

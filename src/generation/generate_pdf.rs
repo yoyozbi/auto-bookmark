@@ -1,4 +1,3 @@
-use std::path::Path;
 use typst_as_lib::TypstEngine;
 
 const PAGE_DEFINITION: &str = r#"#set page(margin: (
@@ -222,32 +221,6 @@ pub fn generate_pdf_with_config(
     Ok(pdf_data)
 }
 
-/// Creates PdfPagePair instances from a PDF file path with the given number of pages
-/// Pages are paired as: (1,2), (3,4), (5,6), etc.
-pub fn create_pdf_page_pairs(
-    pdf_path: &Path,
-    page_count: usize,
-) -> Result<Vec<PdfPagePair>, Box<dyn std::error::Error + Sync + Send>> {
-    if !page_count.is_multiple_of(2) {
-        return Err(format!(
-            "PDF has odd number of pages ({}). Expected even number for recto-verso pairs.",
-            page_count
-        )
-        .into());
-    }
-
-    let pdf_path_str = pdf_path.to_string_lossy().to_string();
-    let pairs = (0..page_count)
-        .step_by(2)
-        .map(|i| PdfPagePair {
-            pdf_path: pdf_path_str.clone(),
-            recto_page: i + 1, // Typst uses 1-based page numbering
-            verso_page: i + 2,
-        })
-        .collect();
-
-    Ok(pairs)
-}
 
 #[cfg(test)]
 mod tests {
