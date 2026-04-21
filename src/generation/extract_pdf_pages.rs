@@ -13,6 +13,19 @@ pub enum ExtractionError {
     IoError(std::io::Error),
     ExtractionFailed(String),
     PdfProcessingError(String),
+    UnreadablePageDimensions(usize),
+    WrongPageSize {
+        page_num: usize,
+        width_cm: f64,
+        height_cm: f64,
+    },
+    InconsistentPageSizes {
+        page_num: usize,
+        width_cm: f64,
+        height_cm: f64,
+        ref_width_cm: f64,
+        ref_height_cm: f64,
+    },
 }
 
 impl std::fmt::Display for ExtractionError {
@@ -29,6 +42,25 @@ impl std::fmt::Display for ExtractionError {
             ExtractionError::IoError(e) => write!(f, "IO Error: {}", e),
             ExtractionError::ExtractionFailed(msg) => write!(f, "Extraction failed: {}", msg),
             ExtractionError::PdfProcessingError(msg) => write!(f, "PDF processing error: {}", msg),
+            ExtractionError::UnreadablePageDimensions(page_num) => {
+                write!(f, "Could not read dimensions of page {}", page_num)
+            }
+            ExtractionError::WrongPageSize { page_num, width_cm, height_cm } => {
+                write!(
+                    f,
+                    "Page {} is {:.2}cm × {:.2}cm. Expected 5cm × 15cm bookmark size.",
+                    page_num, width_cm, height_cm
+                )
+            }
+            ExtractionError::InconsistentPageSizes {
+                page_num, width_cm, height_cm, ref_width_cm, ref_height_cm,
+            } => {
+                write!(
+                    f,
+                    "Page {} ({:.2}cm × {:.2}cm) differs from page 1 ({:.2}cm × {:.2}cm). All pages must be the same size.",
+                    page_num, width_cm, height_cm, ref_width_cm, ref_height_cm
+                )
+            }
         }
     }
 }
@@ -41,22 +73,96 @@ impl From<std::io::Error> for ExtractionError {
     }
 }
 
-/// Get the number of pages in a PDF file using lopdf for accurate parsing
-fn get_pdf_page_count<P: AsRef<Path> + std::fmt::Debug>(
-    pdf_path: P,
-) -> Result<usize, ExtractionError> {
-    // Load and parse PDF using lopdf
-    let document = Document::load(pdf_path.as_ref())
-        .map_err(|e| ExtractionError::PdfProcessingError(format!("Failed to load PDF: {}", e)))?;
+/// Returns the (width, height) in points of a page, following parent-chain inheritance
+/// for MediaBox (which may be set on the Pages root rather than each individual page).
+#[cfg(feature = "ssr")]
+fn get_page_media_box(doc: &Document, page_id: lopdf::ObjectId) -> Option<(f64, f64)> {
+    let mut current_id = page_id;
+    loop {
+        let dict = match doc.get_object(current_id).ok()? {
+            lopdf::Object::Dictionary(d) => d,
+            lopdf::Object::Stream(s) => &s.dict,
+            _ => return None,
+        };
 
-    let pages = document.get_pages();
-    let page_count = pages.len();
+        if let Some(mb) = dict.get(b"MediaBox") {
+            if let lopdf::Object::Array(arr) = mb {
+                if arr.len() >= 4 {
+                    let to_f64 = |obj: &lopdf::Object| -> Option<f64> {
+                        match obj {
+                            lopdf::Object::Integer(i) => Some(*i as f64),
+                            lopdf::Object::Real(r) => Some(*r as f64),
+                            _ => None,
+                        }
+                    };
+                    let llx = to_f64(&arr[0])?;
+                    let lly = to_f64(&arr[1])?;
+                    let urx = to_f64(&arr[2])?;
+                    let ury = to_f64(&arr[3])?;
+                    return Some(((urx - llx).abs(), (ury - lly).abs()));
+                }
+            }
+        }
 
-    Ok(page_count)
+        match dict.get(b"Parent") {
+            Some(lopdf::Object::Reference(parent_id)) => current_id = *parent_id,
+            _ => return None,
+        }
+    }
+}
+
+/// Validates that all pages in the document have:
+/// 1. Dimensions matching 5cm × 15cm (±0.5cm tolerance)
+/// 2. The same dimensions as the first page (±1pt tolerance)
+#[cfg(feature = "ssr")]
+fn validate_page_sizes(doc: &Document) -> Result<(), ExtractionError> {
+    const CM: f64 = 28.3465; // points per cm
+    const EXPECTED_W: f64 = 5.0 * CM; // 141.73pt
+    const EXPECTED_H: f64 = 15.0 * CM; // 425.20pt
+    const SIZE_TOL: f64 = 14.17; // ±0.5cm
+    const UNIFORM_TOL: f64 = 1.0; // ±1pt
+
+    let pages = doc.get_pages();
+    let mut sorted: Vec<_> = pages.iter().collect();
+    sorted.sort_by_key(|(n, _)| *n);
+
+    let mut reference: Option<(f64, f64)> = None;
+
+    for (&page_num, &page_id) in &sorted {
+        let (w, h) = get_page_media_box(doc, page_id)
+            .ok_or(ExtractionError::UnreadablePageDimensions(page_num as usize))?;
+
+        match reference {
+            None => {
+                // Normalize to portrait orientation before checking expected size
+                let (pw, ph) = if w <= h { (w, h) } else { (h, w) };
+                if (pw - EXPECTED_W).abs() > SIZE_TOL || (ph - EXPECTED_H).abs() > SIZE_TOL {
+                    return Err(ExtractionError::WrongPageSize {
+                        page_num: page_num as usize,
+                        width_cm: pw / CM,
+                        height_cm: ph / CM,
+                    });
+                }
+                reference = Some((w, h));
+            }
+            Some((rw, rh)) => {
+                if (w - rw).abs() > UNIFORM_TOL || (h - rh).abs() > UNIFORM_TOL {
+                    return Err(ExtractionError::InconsistentPageSizes {
+                        page_num: page_num as usize,
+                        width_cm: w / CM,
+                        height_cm: h / CM,
+                        ref_width_cm: rw / CM,
+                        ref_height_cm: rh / CM,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 /// Copy a PDF file to the output directory and create page pairs
-/// This replaces the old image extraction approach
 async fn process_pdf_file<P: AsRef<Path>>(
     pdf_path: P,
 ) -> Result<Vec<PdfPagePair>, ExtractionError> {
@@ -68,14 +174,17 @@ async fn process_pdf_file<P: AsRef<Path>>(
         ));
     }
 
-    // Get page count
-    let page_count = get_pdf_page_count(pdf_path)?;
+    let document = Document::load(pdf_path)
+        .map_err(|e| ExtractionError::PdfProcessingError(format!("Failed to load PDF: {}", e)))?;
+
+    let page_count = document.get_pages().len();
 
     if page_count % 2 != 0 {
         return Err(ExtractionError::OddPageCount(page_count));
     }
 
-    // Create page pairs
+    validate_page_sizes(&document)?;
+
     let pairs = create_pdf_page_pairs(pdf_path, page_count)
         .map_err(|e| ExtractionError::PdfProcessingError(e.to_string()))?;
 
@@ -122,52 +231,42 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
-    #[test]
-    fn test_get_pdf_page_count_basic() {
-        use lopdf::{Document, Object, dictionary};
+    fn make_pdf_with_pages(mediabox: Vec<lopdf::Object>, page_count: usize) -> lopdf::Document {
+        use lopdf::{Object, dictionary};
 
-        let temp_dir = TempDir::new().unwrap();
-        let pdf_path = temp_dir.path().join("test.pdf");
+        let mut doc = lopdf::Document::with_version("1.4");
 
-        // Create a simple PDF with 2 pages using lopdf
-        let mut doc = Document::with_version("1.4");
-
-        // Add two pages to the document
         let pages_id = doc.new_object_id();
-        let page1_id = doc.new_object_id();
-        let page2_id = doc.new_object_id();
+        let mut kids = Vec::new();
+        let mut page_ids = Vec::new();
+        for _ in 0..page_count {
+            page_ids.push(doc.new_object_id());
+        }
 
-        // Create pages object
+        for &page_id in &page_ids {
+            kids.push(Object::Reference(page_id));
+        }
+
         doc.objects.insert(
             pages_id,
             Object::Dictionary(dictionary! {
                 "Type" => "Pages",
-                "Kids" => vec![Object::Reference(page1_id), Object::Reference(page2_id)],
-                "Count" => 2,
+                "Kids" => kids,
+                "Count" => page_count as i64,
             }),
         );
 
-        // Create page 1
-        doc.objects.insert(
-            page1_id,
-            Object::Dictionary(dictionary! {
-                "Type" => "Page",
-                "Parent" => Object::Reference(pages_id),
-                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-            }),
-        );
+        for &page_id in &page_ids {
+            doc.objects.insert(
+                page_id,
+                Object::Dictionary(dictionary! {
+                    "Type" => "Page",
+                    "Parent" => Object::Reference(pages_id),
+                    "MediaBox" => mediabox.clone(),
+                }),
+            );
+        }
 
-        // Create page 2
-        doc.objects.insert(
-            page2_id,
-            Object::Dictionary(dictionary! {
-                "Type" => "Page",
-                "Parent" => Object::Reference(pages_id),
-                "MediaBox" => vec![0.into(), 0.into(), 612.into(), 792.into()],
-            }),
-        );
-
-        // Create catalog
         let catalog_id = doc.new_object_id();
         doc.objects.insert(
             catalog_id,
@@ -176,16 +275,113 @@ mod tests {
                 "Pages" => Object::Reference(pages_id),
             }),
         );
+        doc.trailer.set("Root", Object::Reference(catalog_id));
+        doc
+    }
 
-        // Set catalog as root
+    // 5cm × 15cm in points (rounded to integers)
+    const BOOKMARK_W: i64 = 142; // ~141.73pt
+    const BOOKMARK_H: i64 = 425; // ~425.20pt
+
+    #[test]
+    fn test_validate_page_sizes_correct() {
+        let mediabox = vec![
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(BOOKMARK_W),
+            lopdf::Object::Integer(BOOKMARK_H),
+        ];
+        let doc = make_pdf_with_pages(mediabox, 2);
+        assert!(validate_page_sizes(&doc).is_ok());
+    }
+
+    #[test]
+    fn test_validate_page_sizes_wrong_size() {
+        // A4 page (595pt × 842pt ≈ 21cm × 29.7cm)
+        let mediabox = vec![
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(595),
+            lopdf::Object::Integer(842),
+        ];
+        let doc = make_pdf_with_pages(mediabox, 2);
+        assert!(matches!(
+            validate_page_sizes(&doc),
+            Err(ExtractionError::WrongPageSize { .. })
+        ));
+    }
+
+    #[test]
+    fn test_validate_page_sizes_inconsistent() {
+        use lopdf::{Object, dictionary};
+
+        let mut doc = lopdf::Document::with_version("1.4");
+        let pages_id = doc.new_object_id();
+        let page1_id = doc.new_object_id();
+        let page2_id = doc.new_object_id();
+
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Pages",
+                "Kids" => vec![Object::Reference(page1_id), Object::Reference(page2_id)],
+                "Count" => 2,
+            }),
+        );
+        doc.objects.insert(
+            page1_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Page",
+                "Parent" => Object::Reference(pages_id),
+                "MediaBox" => vec![Object::Integer(0), Object::Integer(0),
+                                   Object::Integer(BOOKMARK_W), Object::Integer(BOOKMARK_H)],
+            }),
+        );
+        // Page 2 has a different height
+        doc.objects.insert(
+            page2_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Page",
+                "Parent" => Object::Reference(pages_id),
+                "MediaBox" => vec![Object::Integer(0), Object::Integer(0),
+                                   Object::Integer(BOOKMARK_W), Object::Integer(BOOKMARK_H + 50)],
+            }),
+        );
+        let catalog_id = doc.new_object_id();
+        doc.objects.insert(
+            catalog_id,
+            Object::Dictionary(dictionary! {
+                "Type" => "Catalog",
+                "Pages" => Object::Reference(pages_id),
+            }),
+        );
         doc.trailer.set("Root", Object::Reference(catalog_id));
 
-        // Save the PDF
+        assert!(matches!(
+            validate_page_sizes(&doc),
+            Err(ExtractionError::InconsistentPageSizes { .. })
+        ));
+    }
+
+    #[test]
+    fn test_process_pdf_file_correct_size() {
+        let temp_dir = TempDir::new().unwrap();
+        let pdf_path = temp_dir.path().join("test.pdf");
+
+        let mediabox = vec![
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(0),
+            lopdf::Object::Integer(BOOKMARK_W),
+            lopdf::Object::Integer(BOOKMARK_H),
+        ];
+        let doc = make_pdf_with_pages(mediabox, 2);
         doc.save(&pdf_path).unwrap();
 
-        let result = get_pdf_page_count(pdf_path);
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(process_pdf_file(&pdf_path));
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), 2);
+        assert_eq!(result.unwrap().len(), 1);
     }
 
     #[test]
