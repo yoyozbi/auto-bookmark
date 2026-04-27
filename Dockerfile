@@ -1,20 +1,53 @@
-# Use the official Python 3.8 slim image as the base image
-FROM python:3.11-slim
+# Multi-stage build using pre-built binaries from GitHub Actions
+FROM alpine:3.19 AS runner
 
-# Set the working directory within the container
 WORKDIR /app
 
-# Copy the necessary files and directories into the container
-COPY  requirements.txt .
-RUN pip3 install --upgrade pip && pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn
-RUN apt-get update && apt-get install -y poppler-utils
+# Install runtime dependencies
+RUN apk update && \
+    apk add --no-cache ca-certificates
 
-COPY src/ .
-# Upgrade pip and install Python dependencies
+# Get the target architecture for the binary
+ARG TARGETPLATFORM
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") export ARCH=amd64 ;; \
+        "linux/arm64") export ARCH=arm64 ;; \
+        *) echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac && \
+    echo "ARCH=$ARCH" >> /etc/environment
 
-# Expose port 5000 for the Flask application
-EXPOSE 5000
+# Copy pre-built artifacts based on architecture
+ARG TARGETPLATFORM
+COPY dist/linux/amd64/auto-bookmark /tmp/auto-bookmark-amd64
+COPY dist/linux/arm64/auto-bookmark /tmp/auto-bookmark-arm64
+COPY dist/site ./target/site
+COPY Cargo.toml ./
 
-# Define the command to run the Flask application using Gunicorn
-CMD ["gunicorn", "main", "-b", "0.0.0.0:5000", "-w", "4", "--timeout", "180"]
+# Select the correct binary for the target architecture and clean up
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") \
+            mv /tmp/auto-bookmark-amd64 /app/auto-bookmark && \
+            rm -f /tmp/auto-bookmark-arm64 ;; \
+        "linux/arm64") \
+            mv /tmp/auto-bookmark-arm64 /app/auto-bookmark && \
+            rm -f /tmp/auto-bookmark-amd64 ;; \
+    esac && \
+    chmod +x /app/auto-bookmark
+
+# Set environment variables
+ENV RUST_LOG="info"
+ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
+ENV LEPTOS_OUTPUT_NAME="auto-bookmark"
+
+# Create a non-root user for security
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup
+
+# Change ownership of the app directory
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8080
+
+CMD ["/app/auto-bookmark"]

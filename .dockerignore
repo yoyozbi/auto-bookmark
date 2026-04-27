@@ -1,0 +1,50 @@
+# Build artifacts (keep only dist/ directory with pre-built binaries)
+target/
+out/
+output/
+!dist/
+
+# Development and temporary files
+uploads/
+.sass-cache/
+node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# Development environment
+.devenv/
+.direnv/
+flake.nix
+flake.lock
+
+# Documentation and GitHub files
+.github/
+*.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+USAGE_EXAMPLES.md
+
+# Source code (using pre-built binaries instead)
+src/
+style/
+public/
+
+# Docker files (don't copy Dockerfile into itself)
+Dockerfile
+docker-compose.yml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

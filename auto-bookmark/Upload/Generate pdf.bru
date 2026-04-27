@@ -1,0 +1,11 @@
+meta {
+  name: Generate pdf
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/upload/{{requestId}}/generate
+  body: none
+  auth: inherit
+}

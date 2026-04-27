@@ -1,0 +1,15 @@
+meta {
+  name: Add file to request
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/upload/{{requestId}}/file
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(/home/yohan/Downloads/bookmarks/Hunger games - 3.pdf)
+}

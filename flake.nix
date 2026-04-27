@@ -1,9 +1,13 @@
 {
   inputs = {
-    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    nixpkgs.url = "github:nixOs/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.url = "github:nix-community/fenix";
+    fenix.inputs = { nixpkgs.follows = "nixpkgs"; };
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs = { nixpkgs.follows = "nixpkgs"; };
   };
 
   nixConfig = {
@@ -30,19 +34,24 @@
               inherit inputs pkgs;
               modules = [
                 {
+                  packages = with pkgs;
+                    [
+                      cargo-leptos
+                      nodePackages.sass
+                      binaryen
+                    ];
+
                   dotenv.enable = true;
                   # https://devenv.sh/reference/options/
-                  packages = [  pkgs.poppler_utils ];
 
-                  languages = {
-                    python = {
-                      enable = true;
-                      venv = {
-                        enable = true;
-                        requirements = builtins.readFile ./requirements.txt;
-                      };
-                    };
+                  languages.rust = {
+                    enable = true;
+                    channel = "nightly";
+                    targets = [ "wasm32-unknown-unknown" ];
                   };
+
+                  enterShell = ''
+                  '';
                 }
               ];
             };
