@@ -221,7 +221,6 @@ pub fn generate_pdf_with_config(
     Ok(pdf_data)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -84,13 +84,17 @@ impl GenerationRequest {
     }
 
     pub async fn generate_pdf(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        use crate::generation::generate_pdf::{GridConfig, PageMargins, PdfPagePair, generate_pdf_with_config};
+        use crate::generation::generate_pdf::{
+            GridConfig, PageMargins, PdfPagePair, generate_pdf_with_config,
+        };
 
         if self.input_files.is_empty() {
             return Err("No files provided".into());
         }
 
-        let page_pairs: Vec<PdfPagePair> = self.input_files.iter()
+        let page_pairs: Vec<PdfPagePair> = self
+            .input_files
+            .iter()
             .map(|path| PdfPagePair {
                 pdf_path: path.clone(),
                 recto_page: 1,
